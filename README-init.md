@@ -1,1 +1,0 @@
-# Stroke Rehab Toolkit
