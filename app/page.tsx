@@ -202,6 +202,8 @@ export default function Home() {
   function saveFma(){const next=[{date:new Date().toLocaleString("zh-CN"),ue:fmaScores[0],le:fmaScores[1],sensation:fmaScores[2],balance:fmaScores[3],rom:fmaScores[4],pain:fmaScores[5],note:fmaNote.trim()},...fmaRecords].slice(0,8);setFmaRecords(next);localStorage.setItem("zuka-fma",JSON.stringify(next));}
   const sensTested=sensResults.filter((x)=>x!=="未测").length,sensAbnormal=sensResults.filter((x)=>x!=="未测"&&x!=="正常").length;
   function saveSens(){const next=[{date:new Date().toLocaleString("zh-CN"),side:sensSide,results:sensResults,note:sensNote.trim()},...sensRecords].slice(0,8);setSensRecords(next);localStorage.setItem("zuka-sens",JSON.stringify(next));}
+  const totalRecords=records.length+masRecords.length+biRecords.length+tisRecords.length+fmaRecords.length+sensRecords.length;
+  function exportRecords(){const payload={exportedAt:new Date().toISOString(),app:"卒康",version:1,records:{walk10m:records,mas:masRecords,barthel:biRecords,tis:tisRecords,fma:fmaRecords,sensory:sensRecords}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`卒康评估记录-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);}
   return (
     <main>
       <header className="topbar">
@@ -217,7 +219,7 @@ export default function Home() {
           <a href="#path">康复路径</a>
           <a href="#cases">病例训练</a>
         </nav>
-        <button className="profile">
+        <button className="profile" onClick={()=>setTool("DASH")}>
           治疗师工作台 <i>ZH</i>
         </button>
       </header>
@@ -637,6 +639,20 @@ export default function Home() {
                 <label className="binote">异常分布与功能影响（建议填写）<textarea value={sensNote} onChange={(e)=>setSensNote(e.target.value)} placeholder="例如：左手尺侧轻触减退；闭眼抓握不稳；穿衣时忽略患侧袖口" /></label><button className="primary" onClick={saveSens} disabled={!sensTested}>保存本次筛查</button>
                 <div className="interpret"><h3>安全与解释</h3><p>感觉减退者应同时记录皮肤保护风险，并进行烫伤、压伤、锐器及患肢摆放教育。检查针刺觉和温度觉时避免造成皮肤损伤或使用极端温度。</p><p>皮质感觉异常必须在初级感觉相对保留且患者能够理解任务时解释；失语、忽略、认知或视听问题可能影响结果。发现新发或迅速加重的感觉异常应按急性神经症状流程处理。</p></div>
                 <div className="history"><h3>本机历史记录</h3>{sensRecords.length?<div className="historylist">{sensRecords.map((r,i)=>{const tested=r.results.filter((x)=>x!=="未测").length,abnormal=r.results.filter((x)=>x!=="未测"&&x!=="正常").length;return <div key={i}><span>{r.date}</span><b>{abnormal}项异常</b><small>{r.side} · 已测 {tested}/{sensItems.length}{r.note?` · ${r.note}`:""}</small></div>})}</div>:<p>尚无保存记录。记录仅保存在当前浏览器中。</p>}</div>
+              </>
+            ) : tool === "DASH" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">THERAPIST WORKSPACE</span><h2>治疗师工作台</h2><p>集中查看当前浏览器中保存的评估记录，并导出备份。</p></div>
+                <div className="dashhero"><div><span>本机累计记录</span><strong>{totalRecords}</strong><small>条</small></div><div><span>已有记录工具</span><strong>{[records,masRecords,biRecords,tisRecords,fmaRecords,sensRecords].filter((x)=>x.length).length}</strong><small>/ 6</small></div><button className="primary" onClick={exportRecords} disabled={!totalRecords}>导出全部记录（JSON）</button></div>
+                <div className="dashgrid">
+                  <article><span>10MWT</span><h3>10米步行测试</h3><b>{records[0]?`${records[0].speed.toFixed(2)} m/s`:"暂无记录"}</b><small>{records[0]?.date||"—"}</small><button onClick={()=>setTool("10MWT")}>打开工具</button></article>
+                  <article><span>MAS</span><h3>改良 Ashworth 量表</h3><b>{masRecords[0]?`MAS ${masRecords[0].grade} · ${masRecords[0].side}${masRecords[0].muscle}`:"暂无记录"}</b><small>{masRecords[0]?.date||"—"}</small><button onClick={()=>setTool("MAS")}>打开工具</button></article>
+                  <article><span>BI</span><h3>Barthel 指数</h3><b>{biRecords[0]?`${biRecords[0].total}/100`:"暂无记录"}</b><small>{biRecords[0]?.date||"—"}</small><button onClick={()=>setTool("BI")}>打开工具</button></article>
+                  <article><span>TIS</span><h3>躯干损伤量表</h3><b>{tisRecords[0]?`${tisRecords[0].staticScore+tisRecords[0].dynamicScore+tisRecords[0].coordinationScore}/23`:"暂无记录"}</b><small>{tisRecords[0]?.date||"—"}</small><button onClick={()=>setTool("TIS")}>打开工具</button></article>
+                  <article><span>FMA</span><h3>Fugl-Meyer 评定</h3><b>{fmaRecords[0]?`运动 ${fmaRecords[0].ue+fmaRecords[0].le}/100`:"暂无记录"}</b><small>{fmaRecords[0]?.date||"—"}</small><button onClick={()=>setTool("FMA")}>打开工具</button></article>
+                  <article><span>SENS</span><h3>感觉功能筛查</h3><b>{sensRecords[0]?`${sensRecords[0].results.filter((x)=>x!=="未测"&&x!=="正常").length}项异常`:"暂无记录"}</b><small>{sensRecords[0]?.date||"—"}</small><button onClick={()=>setTool("SENS")}>打开工具</button></article>
+                </div>
+                <div className="privacy"><b>数据说明</b><p>所有记录仅保存在当前浏览器，不会自动上传。清除浏览器数据或更换设备可能导致记录丢失，请定期导出备份。导出文件可能包含临床备注，请按所在机构的隐私规范妥善保存。</p></div>
               </>
             ) : (
               <div className="coming">
