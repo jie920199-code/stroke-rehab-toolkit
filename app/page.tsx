@@ -174,6 +174,8 @@ export default function Home() {
   const [facLevel,setFacLevel]=useState(0); const [facDevice,setFacDevice]=useState("无"); const [facNote,setFacNote]=useState(""); const [facRecords,setFacRecords]=useState<FacRecord[]>([]);
   const [pathFac,setPathFac]=useState(3); const [pathBbs,setPathBbs]=useState(38); const [pathSpeed,setPathSpeed]=useState(0.42); const [pathGoal,setPathGoal]=useState("小区步行"); const [pathRedFlag,setPathRedFlag]=useState(false);
   const [caseAnswers,setCaseAnswers]=useState<number[]>([-1,-1,-1]);
+  const [upperStage,setUpperStage]=useState(3); const [handStage,setHandStage]=useState(2); const [upperFma,setUpperFma]=useState(24); const [upperPain,setUpperPain]=useState(3); const [upperTask,setUpperTask]=useState("辅助稳定物品");
+  const [shoulderAnswers,setShoulderAnswers]=useState<number[]>([-1,-1,-1]);
   useEffect(() => {
     try {
       setRecords(JSON.parse(localStorage.getItem("zuka-10mwt") || "[]"));
@@ -308,6 +310,11 @@ export default function Home() {
         <div className="pathPreview"><span>输入当前表现</span><b>识别优先问题</b><em>生成目标与复评建议</em></div>
         <button onClick={()=>setTool("PATH-WALK")}>进入步行路径 <b>→</b></button>
       </section>
+      <section className="pathSection pathAlt">
+        <div><span className="kicker">CLINICAL PATHWAY 02</span><h2>上肢与手功能路径</h2><p>结合Brunnstrom分期、FMA-UE、疼痛和目标任务，识别肩部保护、近端控制或手功能训练重点。</p></div>
+        <div className="pathPreview"><span>先排查肩痛</span><b>匹配运动阶段</b><em>回到真实任务</em></div>
+        <button onClick={()=>setTool("PATH-UPPER")}>进入上肢路径 <b>→</b></button>
+      </section>
       <section className="content" id="tools">
         <div className="sectionhead">
           <div>
@@ -372,13 +379,13 @@ export default function Home() {
             ["上肢", "偏瘫肩痛与半脱位", "脑出血后2周"],
             ["认知", "忽略导致的转移困难", "右侧大脑半球梗死后3周"],
           ].map((c, i) => (
-            <article className={`case ${i===0?"ready":""}`} key={c[1]} onClick={()=>i===0&&setTool("CASE-WALK")} role={i===0?"button":undefined} tabIndex={i===0?0:undefined}>
+            <article className={`case ${i<2?"ready":""}`} key={c[1]} onClick={()=>i===0?setTool("CASE-WALK"):i===1?setTool("CASE-SHOULDER"):undefined} role={i<2?"button":undefined} tabIndex={i<2?0:undefined}>
               <span className="num">0{i + 1}</span>
               <div>
                 <em>{c[0]}</em>
                 <h3>{c[1]}</h3>
                 <p>{c[2]}</p>
-                {i===0?<button>开始病例训练 →</button>:<small>后续开放</small>}
+                {i<2?<button>开始病例训练 →</button>:<small>后续开放</small>}
               </div>
             </article>
           ))}
@@ -409,7 +416,25 @@ export default function Home() {
             <button className="close" onClick={() => setTool(null)}>
               ×
             </button>
-            {tool === "PATH-WALK" ? (
+            {tool === "PATH-UPPER" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">CLINICAL PATHWAY 02</span><h2>脑卒中上肢与手功能路径</h2><p>以安全、运动阶段和患者真实任务为主线，不以单一分数决定训练方式。</p></div>
+                <div className="pathInputs"><label>Brunnstrom上肢<select value={upperStage} onChange={(e)=>setUpperStage(Number(e.target.value))}>{brStages.map(x=><option value={x.stage} key={x.stage}>{x.stage}期 · {x.title}</option>)}</select></label><label>Brunnstrom手<select value={handStage} onChange={(e)=>setHandStage(Number(e.target.value))}>{brStages.map(x=><option value={x.stage} key={x.stage}>{x.stage}期 · {x.title}</option>)}</select></label><label>FMA-UE<input type="number" min="0" max="66" value={upperFma} onChange={(e)=>setUpperFma(Math.max(0,Math.min(66,Number(e.target.value)||0)))} /></label><label>肩痛 NRS 0–10<input type="number" min="0" max="10" value={upperPain} onChange={(e)=>setUpperPain(Math.max(0,Math.min(10,Number(e.target.value)||0)))} /></label><label>目标任务<select value={upperTask} onChange={(e)=>setUpperTask(e.target.value)}><option>摆位与患肢保护</option><option>辅助稳定物品</option><option>主动抓握与释放</option><option>双手完成日常活动</option><option>精细操作与工作任务</option></select></label></div>
+                {upperPain>=7?<div className="pathStop"><strong>先完成肩痛原因评估</strong><p>明显疼痛时先检查创伤、关节活动、软组织、半脱位、痉挛及复杂区域疼痛综合征等可能原因，避免强拉患肢或无保护的过头活动。</p></div>:<div className="pathPlan"><div className="pathPriority"><span>当前优先方向</span><h3>{upperStage<=2?"肩部保护、维持活动度与诱发主动收缩":upperStage===3?"减轻协同模式限制并建立近端控制":handStage<=3?"近端稳定基础上的抓握与释放准备":"任务特异性的手功能与患手真实使用"}</h3><p>{upperPain>0?`当前肩痛 ${upperPain}/10：训练前后记录疼痛变化，并调整体位、支持和活动范围。`:"当前未报告肩痛，仍需持续预防牵拉和不良摆位。"}</p></div><div className="pathColumns"><article><span>目标示例</span><p>2周内在安全体位下，患侧上肢参与“{upperTask}”任务，完成可重复观察的动作，并减少代偿或协助。</p></article><article><span>干预重点</span><ul><li>高重复、目标导向的主动任务练习</li><li>肩胛与躯干对线，避免牵拉患肢</li><li>{handStage<=3?"结合可完成的伸手、承重及抓放前活动":"逐步增加抓放、双手和精细任务难度"}</li><li>有指征时由专业人员评估电刺激、镜像训练或辅助技术</li></ul></article><article><span>复评计划</span><ul><li>FMA-UE与Brunnstrom分区变化</li><li>疼痛、关节活动度和肌张力</li><li>目标任务的完成质量、次数与协助量</li><li>患者在日常生活中实际使用患手的频率</li></ul></article></div></div>}
+                <div className="interpret"><h3>使用边界</h3><p>肩痛必须先识别原因，再决定处理方式。该路径不建议被动牵拉患肢，也不根据Brunnstrom阶段机械套用固定技术。</p></div>
+              </>
+            ) : tool === "CASE-SHOULDER" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">CASE-BASED LEARNING 02</span><h2>病例：偏瘫肩痛与上肢保护</h2><p>脑出血后2周，右上肢Brunnstrom II期，手I期；肩痛NRS 6/10，坐位时可见轻度半脱位，护理转移时曾牵拉患臂。</p></div>
+                <div className="caseFacts"><span>无新发神经症状</span><span>被动外旋疼痛</span><span>手部明显水肿</span><span>主动肩部控制很少</span></div>
+                <div className="quiz">{[
+                  {q:"1. 首要处理是什么？",opts:["立即进行大幅度过头滑轮训练","评估疼痛原因并纠正摆位、转移和患肢支持","反复牵拉肩关节以复位"],correct:1,why:"卒中后肩痛应先查明原因，并减少牵拉和不良摆位造成的再次损伤。"},
+                  {q:"2. 哪项护理教育最关键？",opts:["转移时抓住患侧上臂更省力","在患肢无控制时避免牵拉，由躯干和骨盆引导转移并妥善支持上肢","全天使用吊带且不再活动肩部"],correct:1,why:"应避免拉拽患肢；支持方式需结合任务和专业评估，不能用全天固定替代主动康复。"},
+                  {q:"3. 近期复评应包括什么？",opts:["只记录Brunnstrom分期","疼痛、关节活动、半脱位/水肿、主动收缩及目标任务参与","只拍肩关节照片"],correct:1,why:"疼痛病例需要同时跟踪结构与软组织风险、运动恢复和功能参与。"},
+                ].map((q,qi)=><section className="quizitem" key={q.q}><h3>{q.q}</h3>{q.opts.map((o,oi)=><button className={shoulderAnswers[qi]===oi?(oi===q.correct?"correct":"wrong"):""} onClick={()=>setShoulderAnswers(a=>a.map((v,i)=>i===qi?oi:v))} key={o}>{o}</button>)}{shoulderAnswers[qi]>=0?<p className={shoulderAnswers[qi]===q.correct?"ok":"retry"}>{shoulderAnswers[qi]===q.correct?"判断合理。":"再想一步。"} {q.why}</p>:null}</section>)}</div>
+                <div className="caseResult"><strong>{shoulderAnswers.filter((a)=>a===1).length}/3</strong><div><b>{shoulderAnswers.every(a=>a>=0)?"本轮已完成":"完成三个安全决策"}</b><p>肩痛处理首先是识别原因和停止二次伤害，再安排阶段匹配的主动康复。</p></div><button className="outline" onClick={()=>setShoulderAnswers([-1,-1,-1])}>重新训练</button></div>
+              </>
+            ) : tool === "PATH-WALK" ? (
               <>
                 <div className="tooltitle"><span className="kicker">CLINICAL PATHWAY 01</span><h2>脑卒中步行康复路径</h2><p>先筛查安全，再依据辅助程度、平衡和速度确定训练重点与复评指标。</p></div>
                 <div className="pathSafety"><label><input type="checkbox" checked={pathRedFlag} onChange={(e)=>setPathRedFlag(e.target.checked)} /> 存在新发神经症状、胸痛、静息呼吸困难、晕厥或生命体征不稳定</label><p>{pathRedFlag?"暂停步行训练，按机构流程进行医学评估。":"未勾选急性红旗；仍需结合跌倒史、疼痛、认知和环境风险。"}</p></div>
