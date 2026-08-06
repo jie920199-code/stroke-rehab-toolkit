@@ -88,6 +88,7 @@ type BiRecord={date:string;total:number;note:string};
 type TisRecord={date:string;staticScore:number;dynamicScore:number;coordinationScore:number;note:string};
 type FmaRecord={date:string;ue:number;le:number;sensation:number;balance:number;rom:number;pain:number;note:string};
 type SensRecord={date:string;side:string;results:string[];note:string};
+type BbsRecord={date:string;total:number;scores:number[]};
 const sensItems=[
  {group:"浅感觉",name:"轻触觉",help:"闭眼，随机触碰并与健侧对应部位比较"},{group:"浅感觉",name:"针刺觉／锐钝辨别",help:"使用一次性安全工具，避免破损皮肤"},{group:"浅感觉",name:"温度觉",help:"仅在有指征且能安全控制温度时检查"},{group:"深感觉",name:"关节位置觉",help:"握持指（趾）侧面，小幅上下移动"},{group:"深感觉",name:"运动觉",help:"识别关节被动运动的方向"},{group:"皮质感觉",name:"触觉定位",help:"指出被触碰的准确身体部位"},{group:"皮质感觉",name:"双侧同时刺激",help:"比较单侧与双侧刺激，观察感觉消退"},{group:"皮质感觉",name:"实体觉",help:"闭眼辨认熟悉、安全的日常物品"},{group:"皮质感觉",name:"图形觉",help:"在手掌书写简单数字或图形并辨认"},
 ];
@@ -126,6 +127,7 @@ export default function Home() {
   const [t1, setT1] = useState("12.5");
   const [t2, setT2] = useState("12.0");
   const [bbsScores, setBbsScores] = useState<number[]>(Array(14).fill(0));
+  const [bbsRecords,setBbsRecords]=useState<BbsRecord[]>([]);
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [masSide, setMasSide] = useState("左侧");
   const [masMuscle, setMasMuscle] = useState("肘屈肌");
@@ -144,6 +146,7 @@ export default function Home() {
       setTisRecords(JSON.parse(localStorage.getItem("zuka-tis") || "[]"));
       setFmaRecords(JSON.parse(localStorage.getItem("zuka-fma") || "[]"));
       setSensRecords(JSON.parse(localStorage.getItem("zuka-sens") || "[]"));
+      setBbsRecords(JSON.parse(localStorage.getItem("zuka-bbs") || "[]"));
     } catch {}
   }, []);
   const filtered = useMemo(
@@ -163,6 +166,7 @@ export default function Home() {
     : 0;
   const speed = avg ? 10 / avg : 0;
   const bbsTotal = bbsScores.reduce((a, b) => a + b, 0);
+  function saveBbs(){const next=[{date:new Date().toLocaleString("zh-CN"),total:bbsTotal,scores:bbsScores},...bbsRecords].slice(0,8);setBbsRecords(next);localStorage.setItem("zuka-bbs",JSON.stringify(next));}
   function save() {
     if (!speed) return;
     const next = [
@@ -202,8 +206,8 @@ export default function Home() {
   function saveFma(){const next=[{date:new Date().toLocaleString("zh-CN"),ue:fmaScores[0],le:fmaScores[1],sensation:fmaScores[2],balance:fmaScores[3],rom:fmaScores[4],pain:fmaScores[5],note:fmaNote.trim()},...fmaRecords].slice(0,8);setFmaRecords(next);localStorage.setItem("zuka-fma",JSON.stringify(next));}
   const sensTested=sensResults.filter((x)=>x!=="未测").length,sensAbnormal=sensResults.filter((x)=>x!=="未测"&&x!=="正常").length;
   function saveSens(){const next=[{date:new Date().toLocaleString("zh-CN"),side:sensSide,results:sensResults,note:sensNote.trim()},...sensRecords].slice(0,8);setSensRecords(next);localStorage.setItem("zuka-sens",JSON.stringify(next));}
-  const totalRecords=records.length+masRecords.length+biRecords.length+tisRecords.length+fmaRecords.length+sensRecords.length;
-  function exportRecords(){const payload={exportedAt:new Date().toISOString(),app:"卒康",version:1,records:{walk10m:records,mas:masRecords,barthel:biRecords,tis:tisRecords,fma:fmaRecords,sensory:sensRecords}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`卒康评估记录-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);}
+  const totalRecords=records.length+bbsRecords.length+masRecords.length+biRecords.length+tisRecords.length+fmaRecords.length+sensRecords.length;
+  function exportRecords(){const payload={exportedAt:new Date().toISOString(),app:"卒康",version:1,records:{walk10m:records,bbs:bbsRecords,mas:masRecords,barthel:biRecords,tis:tisRecords,fma:fmaRecords,sensory:sensRecords}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`卒康评估记录-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);}
   return (
     <main>
       <header className="topbar">
@@ -548,6 +552,7 @@ export default function Home() {
                     <p>
                       请依据标准手册中每个条目的具体时间、距离与协助标准选择0–4分。这里的简短标签不能替代条目级判分说明。
                     </p>
+                    <button className="primary" onClick={saveBbs}>保存本次评分</button>
                     <button
                       className="outline"
                       onClick={() => setBbsScores(Array(14).fill(0))}
@@ -565,6 +570,7 @@ export default function Home() {
                     建议结合跌倒史、步态速度、转移能力、认知与环境需求综合判断，并在相似条件下连续复评。
                   </p>
                 </div>
+                <div className="history"><h3>本机历史记录</h3>{bbsRecords.length?<><p className="trendnote">与最近一次相比：{bbsTotal-bbsRecords[0].total>0?"+":""}{bbsTotal-bbsRecords[0].total} 分</p><div className="historylist">{bbsRecords.map((r,i)=><div key={i}><span>{r.date}</span><b>{r.total}/56</b><small>{r.total<45?"低于常用45分参考线":"未低于常用45分参考线"}</small></div>)}</div></>:<p>尚无保存记录。保存后可查看连续变化。</p>}</div>
               </>
             ) : tool === "MAS" ? (
               <>
@@ -643,9 +649,10 @@ export default function Home() {
             ) : tool === "DASH" ? (
               <>
                 <div className="tooltitle"><span className="kicker">THERAPIST WORKSPACE</span><h2>治疗师工作台</h2><p>集中查看当前浏览器中保存的评估记录，并导出备份。</p></div>
-                <div className="dashhero"><div><span>本机累计记录</span><strong>{totalRecords}</strong><small>条</small></div><div><span>已有记录工具</span><strong>{[records,masRecords,biRecords,tisRecords,fmaRecords,sensRecords].filter((x)=>x.length).length}</strong><small>/ 6</small></div><button className="primary" onClick={exportRecords} disabled={!totalRecords}>导出全部记录（JSON）</button></div>
+                <div className="dashhero"><div><span>本机累计记录</span><strong>{totalRecords}</strong><small>条</small></div><div><span>已有记录工具</span><strong>{[records,bbsRecords,masRecords,biRecords,tisRecords,fmaRecords,sensRecords].filter((x)=>x.length).length}</strong><small>/ 7</small></div><button className="primary" onClick={exportRecords} disabled={!totalRecords}>导出全部记录（JSON）</button></div>
                 <div className="dashgrid">
                   <article><span>10MWT</span><h3>10米步行测试</h3><b>{records[0]?`${records[0].speed.toFixed(2)} m/s`:"暂无记录"}</b><small>{records[0]?.date||"—"}</small><button onClick={()=>setTool("10MWT")}>打开工具</button></article>
+                  <article><span>BBS</span><h3>Berg 平衡量表</h3><b>{bbsRecords[0]?`${bbsRecords[0].total}/56`:"暂无记录"}</b><small>{bbsRecords[0]?.date||"—"}</small><button onClick={()=>setTool("BBS")}>打开工具</button></article>
                   <article><span>MAS</span><h3>改良 Ashworth 量表</h3><b>{masRecords[0]?`MAS ${masRecords[0].grade} · ${masRecords[0].side}${masRecords[0].muscle}`:"暂无记录"}</b><small>{masRecords[0]?.date||"—"}</small><button onClick={()=>setTool("MAS")}>打开工具</button></article>
                   <article><span>BI</span><h3>Barthel 指数</h3><b>{biRecords[0]?`${biRecords[0].total}/100`:"暂无记录"}</b><small>{biRecords[0]?.date||"—"}</small><button onClick={()=>setTool("BI")}>打开工具</button></article>
                   <article><span>TIS</span><h3>躯干损伤量表</h3><b>{tisRecords[0]?`${tisRecords[0].staticScore+tisRecords[0].dynamicScore+tisRecords[0].coordinationScore}/23`:"暂无记录"}</b><small>{tisRecords[0]?.date||"—"}</small><button onClick={()=>setTool("TIS")}>打开工具</button></article>
