@@ -11,6 +11,13 @@ const assessments = [
     note: "上下肢运动、感觉与平衡的系统评估",
   },
   {
+    name: "脑卒中感觉功能评估",
+    abbr: "SENS",
+    area: "感觉功能",
+    time: "10–15分钟",
+    note: "分层筛查浅感觉、深感觉与皮质感觉异常",
+  },
+  {
     name: "Berg平衡量表",
     abbr: "BBS",
     area: "平衡",
@@ -80,6 +87,10 @@ type MasRecord = {
 type BiRecord={date:string;total:number;note:string};
 type TisRecord={date:string;staticScore:number;dynamicScore:number;coordinationScore:number;note:string};
 type FmaRecord={date:string;ue:number;le:number;sensation:number;balance:number;rom:number;pain:number;note:string};
+type SensRecord={date:string;side:string;results:string[];note:string};
+const sensItems=[
+ {group:"浅感觉",name:"轻触觉",help:"闭眼，随机触碰并与健侧对应部位比较"},{group:"浅感觉",name:"针刺觉／锐钝辨别",help:"使用一次性安全工具，避免破损皮肤"},{group:"浅感觉",name:"温度觉",help:"仅在有指征且能安全控制温度时检查"},{group:"深感觉",name:"关节位置觉",help:"握持指（趾）侧面，小幅上下移动"},{group:"深感觉",name:"运动觉",help:"识别关节被动运动的方向"},{group:"皮质感觉",name:"触觉定位",help:"指出被触碰的准确身体部位"},{group:"皮质感觉",name:"双侧同时刺激",help:"比较单侧与双侧刺激，观察感觉消退"},{group:"皮质感觉",name:"实体觉",help:"闭眼辨认熟悉、安全的日常物品"},{group:"皮质感觉",name:"图形觉",help:"在手掌书写简单数字或图形并辨认"},
+];
 const biItems=[
  {name:"进食",options:[[0,"不能独立进食"],[5,"需要切食、涂抹或监督"],[10,"独立进食"]]},
  {name:"洗澡",options:[[0,"需要帮助"],[5,"独立完成"]]},
@@ -124,6 +135,7 @@ export default function Home() {
   const [biScores,setBiScores]=useState<number[]>(Array(10).fill(0)); const [biNote,setBiNote]=useState(""); const [biRecords,setBiRecords]=useState<BiRecord[]>([]);
   const [tisStatic,setTisStatic]=useState(0); const [tisDynamic,setTisDynamic]=useState(0); const [tisCoord,setTisCoord]=useState(0); const [tisNote,setTisNote]=useState(""); const [tisRecords,setTisRecords]=useState<TisRecord[]>([]);
   const [fmaScores,setFmaScores]=useState([0,0,0,0,0,0]); const [fmaNote,setFmaNote]=useState(""); const [fmaRecords,setFmaRecords]=useState<FmaRecord[]>([]);
+  const [sensSide,setSensSide]=useState("左侧"); const [sensResults,setSensResults]=useState<string[]>(Array(sensItems.length).fill("未测")); const [sensNote,setSensNote]=useState(""); const [sensRecords,setSensRecords]=useState<SensRecord[]>([]);
   useEffect(() => {
     try {
       setRecords(JSON.parse(localStorage.getItem("zuka-10mwt") || "[]"));
@@ -131,6 +143,7 @@ export default function Home() {
       setBiRecords(JSON.parse(localStorage.getItem("zuka-bi") || "[]"));
       setTisRecords(JSON.parse(localStorage.getItem("zuka-tis") || "[]"));
       setFmaRecords(JSON.parse(localStorage.getItem("zuka-fma") || "[]"));
+      setSensRecords(JSON.parse(localStorage.getItem("zuka-sens") || "[]"));
     } catch {}
   }, []);
   const filtered = useMemo(
@@ -187,6 +200,8 @@ export default function Home() {
   function saveTis(){const next=[{date:new Date().toLocaleString("zh-CN"),staticScore:tisStatic,dynamicScore:tisDynamic,coordinationScore:tisCoord,note:tisNote.trim()},...tisRecords].slice(0,8);setTisRecords(next);localStorage.setItem("zuka-tis",JSON.stringify(next));}
   const fmaMotor=fmaScores[0]+fmaScores[1],fmaTotal=fmaScores.reduce((a,b)=>a+b,0);
   function saveFma(){const next=[{date:new Date().toLocaleString("zh-CN"),ue:fmaScores[0],le:fmaScores[1],sensation:fmaScores[2],balance:fmaScores[3],rom:fmaScores[4],pain:fmaScores[5],note:fmaNote.trim()},...fmaRecords].slice(0,8);setFmaRecords(next);localStorage.setItem("zuka-fma",JSON.stringify(next));}
+  const sensTested=sensResults.filter((x)=>x!=="未测").length,sensAbnormal=sensResults.filter((x)=>x!=="未测"&&x!=="正常").length;
+  function saveSens(){const next=[{date:new Date().toLocaleString("zh-CN"),side:sensSide,results:sensResults,note:sensNote.trim()},...sensRecords].slice(0,8);setSensRecords(next);localStorage.setItem("zuka-sens",JSON.stringify(next));}
   return (
     <main>
       <header className="topbar">
@@ -254,6 +269,7 @@ export default function Home() {
           {[
             "全部",
             "运动功能",
+            "感觉功能",
             "平衡",
             "步行",
             "肌张力",
@@ -611,6 +627,16 @@ export default function Home() {
                 <div className="fmabody"><article className="fmadomains">{[{name:"上肢运动",max:66,help:"反射、协同运动、腕、手与协调速度"},{name:"下肢运动",max:34,help:"反射、协同运动、站位及协调速度"},{name:"感觉",max:24,help:"轻触觉与本体感觉"},{name:"平衡",max:14,help:"坐位与站立平衡"},{name:"关节活动度",max:44,help:"上、下肢被动关节活动范围"},{name:"关节疼痛",max:44,help:"被动活动过程中的疼痛"}].map((x,i)=><label className="fmadomain" key={x.name}><span><b>{x.name}</b><small>{x.help}</small></span><input type="number" min="0" max={x.max} step="1" value={fmaScores[i]} onChange={(e)=>{const value=Math.max(0,Math.min(x.max,Number(e.target.value)||0));setFmaScores((s)=>s.map((v,n)=>n===i?value:v))}} /><em>/ {x.max}</em></label>)}<label className="binote">本次备注（可选）<textarea value={fmaNote} onChange={(e)=>setFmaNote(e.target.value)} placeholder="例如：受累侧、病程阶段、未测项目或疼痛限制" /></label><button className="primary" onClick={saveFma}>保存本次结果</button></article><aside className="fmasummary"><span>运动功能</span><strong>{fmaMotor}</strong><em>/100</em><p>上肢 <b>{fmaScores[0]}/66</b></p><p>下肢 <b>{fmaScores[1]}/34</b></p><div><span>完整FMA总分</span><b>{fmaTotal}/226</b></div><small>只有完成全部分域时，才应报告0–226分完整总分。</small></aside></div>
                 <div className="interpret"><h3>记录与解释</h3><p>报告结果时应写明具体版本和分域，例如“FMA-UE 38/66”或“FMA运动分 62/100”，不要只写“FMA 62分”。</p><p>本页面用于汇总已经依据正式评分表完成的分域得分，不替代标准化条目说明、演示与评定者培训；连续复评应保持受累侧、版本和测试条件一致。</p></div>
                 <div className="history"><h3>本机历史记录</h3>{fmaRecords.length?<div className="historylist">{fmaRecords.map((r,i)=><div key={i}><span>{r.date}</span><b>运动 {r.ue+r.le}/100</b><small>UE {r.ue}/66 · LE {r.le}/34 · 完整 {r.ue+r.le+r.sensation+r.balance+r.rom+r.pain}/226{r.note?` · ${r.note}`:""}</small></div>)}</div>:<p>尚无保存记录。记录仅保存在当前浏览器中。</p>}</div>
+              </>
+            ) : tool === "SENS" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">POST-STROKE SENSORY SCREEN</span><h2>脑卒中感觉功能评估 <small>结构化床旁筛查</small></h2><p>按浅感觉、深感觉和皮质感觉分层记录，并与对侧对应部位比较。</p></div>
+                <div className="sensintro"><div><b>检查条件</b><span>患者清醒、能理解指令并闭眼配合</span></div><div><b>评估顺序</b><span>先示范，再随机刺激；由远端到近端</span></div><div><b>结果性质</b><span>临床筛查记录，不是标准化量表总分</span></div></div>
+                <div className="senshead"><label>重点记录侧<select value={sensSide} onChange={(e)=>setSensSide(e.target.value)}><option>左侧</option><option>右侧</option><option>双侧</option></select></label><div><b>{sensTested}/{sensItems.length}</b><span>已检查</span></div><div className={sensAbnormal?"alert":""}><b>{sensAbnormal}</b><span>项异常</span></div></div>
+                <div className="sensbody"><div className="senslist">{sensItems.map((item,i)=><label className="sensitem" key={item.name}><span><em>{item.group}</em><b>{item.name}</b><small>{item.help}</small></span><select value={sensResults[i]} onChange={(e)=>setSensResults((s)=>s.map((v,n)=>n===i?e.target.value:v))} aria-label={`${item.name}结果`}><option>未测</option><option>正常</option><option>减退</option><option>缺失</option><option>异常增强／痛觉过敏</option><option>无法判断</option></select></label>)}</div><aside className="senssummary"><span>本次筛查</span><strong>{sensAbnormal}</strong><em>项异常</em><p>{sensTested===0?"尚未开始记录":sensAbnormal===0?"已测项目暂未发现异常":"需结合异常分布与功能影响进一步评估"}</p><button className="outline" onClick={()=>setSensResults(Array(sensItems.length).fill("未测"))}>清空结果</button></aside></div>
+                <label className="binote">异常分布与功能影响（建议填写）<textarea value={sensNote} onChange={(e)=>setSensNote(e.target.value)} placeholder="例如：左手尺侧轻触减退；闭眼抓握不稳；穿衣时忽略患侧袖口" /></label><button className="primary" onClick={saveSens} disabled={!sensTested}>保存本次筛查</button>
+                <div className="interpret"><h3>安全与解释</h3><p>感觉减退者应同时记录皮肤保护风险，并进行烫伤、压伤、锐器及患肢摆放教育。检查针刺觉和温度觉时避免造成皮肤损伤或使用极端温度。</p><p>皮质感觉异常必须在初级感觉相对保留且患者能够理解任务时解释；失语、忽略、认知或视听问题可能影响结果。发现新发或迅速加重的感觉异常应按急性神经症状流程处理。</p></div>
+                <div className="history"><h3>本机历史记录</h3>{sensRecords.length?<div className="historylist">{sensRecords.map((r,i)=>{const tested=r.results.filter((x)=>x!=="未测").length,abnormal=r.results.filter((x)=>x!=="未测"&&x!=="正常").length;return <div key={i}><span>{r.date}</span><b>{abnormal}项异常</b><small>{r.side} · 已测 {tested}/{sensItems.length}{r.note?` · ${r.note}`:""}</small></div>})}</div>:<p>尚无保存记录。记录仅保存在当前浏览器中。</p>}</div>
               </>
             ) : (
               <div className="coming">
