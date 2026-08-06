@@ -172,6 +172,8 @@ export default function Home() {
   const [sensSide,setSensSide]=useState("左侧"); const [sensResults,setSensResults]=useState<string[]>(Array(sensItems.length).fill("未测")); const [sensNote,setSensNote]=useState(""); const [sensRecords,setSensRecords]=useState<SensRecord[]>([]);
   const [brUpper,setBrUpper]=useState(1); const [brHand,setBrHand]=useState(1); const [brLower,setBrLower]=useState(1); const [brNote,setBrNote]=useState(""); const [brRecords,setBrRecords]=useState<BrRecord[]>([]);
   const [facLevel,setFacLevel]=useState(0); const [facDevice,setFacDevice]=useState("无"); const [facNote,setFacNote]=useState(""); const [facRecords,setFacRecords]=useState<FacRecord[]>([]);
+  const [pathFac,setPathFac]=useState(3); const [pathBbs,setPathBbs]=useState(38); const [pathSpeed,setPathSpeed]=useState(0.42); const [pathGoal,setPathGoal]=useState("小区步行"); const [pathRedFlag,setPathRedFlag]=useState(false);
+  const [caseAnswers,setCaseAnswers]=useState<number[]>([-1,-1,-1]);
   useEffect(() => {
     try {
       setRecords(JSON.parse(localStorage.getItem("zuka-10mwt") || "[]"));
@@ -301,6 +303,11 @@ export default function Home() {
           </div>
         ))}
       </section>
+      <section className="pathSection">
+        <div><span className="kicker">CLINICAL PATHWAY 01</span><h2>步行康复路径</h2><p>把安全筛查、FAC、BBS和10米步行速度串成一条可解释的决策路径。</p></div>
+        <div className="pathPreview"><span>输入当前表现</span><b>识别优先问题</b><em>生成目标与复评建议</em></div>
+        <button onClick={()=>setTool("PATH-WALK")}>进入步行路径 <b>→</b></button>
+      </section>
       <section className="content" id="tools">
         <div className="sectionhead">
           <div>
@@ -365,12 +372,13 @@ export default function Home() {
             ["上肢", "偏瘫肩痛与半脱位", "脑出血后2周"],
             ["认知", "忽略导致的转移困难", "右侧大脑半球梗死后3周"],
           ].map((c, i) => (
-            <article className="case" key={c[1]}>
+            <article className={`case ${i===0?"ready":""}`} key={c[1]} onClick={()=>i===0&&setTool("CASE-WALK")} role={i===0?"button":undefined} tabIndex={i===0?0:undefined}>
               <span className="num">0{i + 1}</span>
               <div>
                 <em>{c[0]}</em>
                 <h3>{c[1]}</h3>
                 <p>{c[2]}</p>
+                {i===0?<button>开始病例训练 →</button>:<small>后续开放</small>}
               </div>
             </article>
           ))}
@@ -401,7 +409,26 @@ export default function Home() {
             <button className="close" onClick={() => setTool(null)}>
               ×
             </button>
-            {tool === "10MWT" ? (
+            {tool === "PATH-WALK" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">CLINICAL PATHWAY 01</span><h2>脑卒中步行康复路径</h2><p>先筛查安全，再依据辅助程度、平衡和速度确定训练重点与复评指标。</p></div>
+                <div className="pathSafety"><label><input type="checkbox" checked={pathRedFlag} onChange={(e)=>setPathRedFlag(e.target.checked)} /> 存在新发神经症状、胸痛、静息呼吸困难、晕厥或生命体征不稳定</label><p>{pathRedFlag?"暂停步行训练，按机构流程进行医学评估。":"未勾选急性红旗；仍需结合跌倒史、疼痛、认知和环境风险。"}</p></div>
+                <div className="pathInputs"><label>FAC<select value={pathFac} onChange={(e)=>setPathFac(Number(e.target.value))}>{facLevels.map(x=><option value={x.level} key={x.level}>{x.level} · {x.title}</option>)}</select></label><label>BBS总分<input type="number" min="0" max="56" value={pathBbs} onChange={(e)=>setPathBbs(Math.max(0,Math.min(56,Number(e.target.value)||0)))} /></label><label>舒适步速（m/s）<input type="number" min="0" step="0.01" value={pathSpeed} onChange={(e)=>setPathSpeed(Math.max(0,Number(e.target.value)||0))} /></label><label>患者目标<select value={pathGoal} onChange={(e)=>setPathGoal(e.target.value)}><option>床旁与室内移动</option><option>家庭独立步行</option><option>小区步行</option><option>公共交通与社会参与</option></select></label></div>
+                {pathRedFlag?<div className="pathStop"><strong>当前不进入训练处方</strong><p>先处理红旗并获得医学许可；系统不根据量表分数覆盖安全判断。</p></div>:<div className="pathPlan"><div className="pathPriority"><span>优先问题</span><h3>{pathFac<=2?"人身帮助需求与基本步行控制":pathFac===3?"由监护步行向独立步行过渡":pathSpeed<0.8?"独立步行的速度、耐力与环境适应":"复杂环境与社区参与能力"}</h3><p>{pathBbs<45?"BBS低于常用45分参考线，需把动态平衡与跌倒风险管理列为重点。":"BBS未低于常用45分参考线，仍应依据跌倒史和复杂任务表现判断风险。"}</p></div><div className="pathColumns"><article><span>近期目标示例</span><p>在治疗师设定的安全条件下，患者于2周内{pathFac<=2?"将所需身体帮助降低一级，并完成重复短距离步行":"以当前辅助器具完成规定距离，减少身体接触或监护需求"}，向“{pathGoal}”推进。</p></article><article><span>干预重点</span><ul><li>高重复、任务特异性的坐站、迈步与步行练习</li><li>{pathBbs<45?"动态平衡、转向、障碍物与保护策略":"速度变化、耐力和复杂环境任务"}</li><li>检查足下垂、膝控制及辅助器具／AFO适配</li><li>逐步增加距离、速度、方向和环境复杂度</li></ul></article><article><span>复评计划</span><ul><li>FAC：身体帮助是否下降</li><li>10MWT：在相同模式和器具下复测速度</li><li>BBS：观察动态平衡变化</li><li>记录跌倒、近跌倒、疲劳与目标完成度</li></ul></article></div></div>}
+                <div className="interpret"><h3>使用边界</h3><p>该路径提供问题排序和记录提示，不自动生成个体化治疗处方。训练剂量应依据医学稳定性、疲劳、心肺反应、运动学习能力及患者偏好调整。</p></div>
+              </>
+            ) : tool === "CASE-WALK" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">CASE-BASED LEARNING 01</span><h2>病例：从监护步行走向小区活动</h2><p>脑梗死后6周，左侧偏瘫；FAC 3级，BBS 38分，舒适步速0.42 m/s，使用四脚杖。患者希望独立去小区花园。</p></div>
+                <div className="caseFacts"><span>生命体征稳定</span><span>理解两步指令</span><span>近1周无跌倒</span><span>转弯时需口头提示</span></div>
+                <div className="quiz">{[
+                  {q:"1. 当前最优先的步行问题是什么？",opts:["步行速度未达到0.8 m/s","仍需监护且动态平衡受限","必须先完全消除所有痉挛"],correct:1,why:"FAC 3说明尚需监护，BBS 38提示动态平衡和跌倒风险管理应优先；速度同样重要，但安全独立是当前关键。"},
+                  {q:"2. 哪个近期目标更可测量？",opts:["尽快恢复正常步态","2周内使用四脚杖，在室内完成30米步行，仅需远距离监护，无身体接触","每天多走一些"],correct:1,why:"目标包含时间、环境、距离、器具和帮助水平，能够用FAC与实际任务复评。"},
+                  {q:"3. 哪组复评最能回答“是否更接近小区步行”？",opts:["只复查肌张力","FAC、10MWT、BBS，加实际转弯与户外任务","只询问患者感觉"],correct:1,why:"需要同时观察帮助程度、速度、平衡及目标环境中的真实表现。"},
+                ].map((q,qi)=><section className="quizitem" key={q.q}><h3>{q.q}</h3>{q.opts.map((o,oi)=><button className={caseAnswers[qi]===oi?(oi===q.correct?"correct":"wrong"):""} onClick={()=>setCaseAnswers(a=>a.map((v,i)=>i===qi?oi:v))} key={o}>{o}</button>)}{caseAnswers[qi]>=0?<p className={caseAnswers[qi]===q.correct?"ok":"retry"}>{caseAnswers[qi]===q.correct?"判断合理。":"再想一步。"} {q.why}</p>:null}</section>)}</div>
+                <div className="caseResult"><strong>{caseAnswers.filter((a,i)=>a===1).length}/3</strong><div><b>{caseAnswers.every(a=>a>=0)?"本轮已完成":"完成三个临床决策"}</b><p>重点不是背答案，而是建立“安全—评估—优先问题—目标—复评”的推理链。</p></div><button className="outline" onClick={()=>setCaseAnswers([-1,-1,-1])}>重新训练</button></div>
+              </>
+            ) : tool === "10MWT" ? (
               <>
                 <div className="tooltitle">
                   <span className="kicker">FUNCTIONAL ASSESSMENT</span>
