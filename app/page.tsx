@@ -176,6 +176,8 @@ export default function Home() {
   const [caseAnswers,setCaseAnswers]=useState<number[]>([-1,-1,-1]);
   const [upperStage,setUpperStage]=useState(3); const [handStage,setHandStage]=useState(2); const [upperFma,setUpperFma]=useState(24); const [upperPain,setUpperPain]=useState(3); const [upperTask,setUpperTask]=useState("辅助稳定物品");
   const [shoulderAnswers,setShoulderAnswers]=useState<number[]>([-1,-1,-1]);
+  const [neglectSide,setNeglectSide]=useState("左侧"); const [neglectLevel,setNeglectLevel]=useState("中度"); const [neglectTis,setNeglectTis]=useState(12); const [transferHelp,setTransferHelp]=useState("一人少量帮助");
+  const [neglectAnswers,setNeglectAnswers]=useState<number[]>([-1,-1,-1]);
   useEffect(() => {
     try {
       setRecords(JSON.parse(localStorage.getItem("zuka-10mwt") || "[]"));
@@ -315,6 +317,11 @@ export default function Home() {
         <div className="pathPreview"><span>先排查肩痛</span><b>匹配运动阶段</b><em>回到真实任务</em></div>
         <button onClick={()=>setTool("PATH-UPPER")}>进入上肢路径 <b>→</b></button>
       </section>
+      <section className="pathSection pathNeglect">
+        <div><span className="kicker">CLINICAL PATHWAY 03</span><h2>偏侧忽略与安全转移路径</h2><p>把空间觉察、感觉、坐位控制、转移协助和环境布置整合到真实活动中。</p></div>
+        <div className="pathPreview"><span>区分忽略与视野问题</span><b>训练扫描与锚定</b><em>嵌入转移任务</em></div>
+        <button onClick={()=>setTool("PATH-NEGLECT")}>进入忽略路径 <b>→</b></button>
+      </section>
       <section className="content" id="tools">
         <div className="sectionhead">
           <div>
@@ -379,13 +386,13 @@ export default function Home() {
             ["上肢", "偏瘫肩痛与半脱位", "脑出血后2周"],
             ["认知", "忽略导致的转移困难", "右侧大脑半球梗死后3周"],
           ].map((c, i) => (
-            <article className={`case ${i<2?"ready":""}`} key={c[1]} onClick={()=>i===0?setTool("CASE-WALK"):i===1?setTool("CASE-SHOULDER"):undefined} role={i<2?"button":undefined} tabIndex={i<2?0:undefined}>
+            <article className="case ready" key={c[1]} onClick={()=>i===0?setTool("CASE-WALK"):i===1?setTool("CASE-SHOULDER"):setTool("CASE-NEGLECT")} role="button" tabIndex={0}>
               <span className="num">0{i + 1}</span>
               <div>
                 <em>{c[0]}</em>
                 <h3>{c[1]}</h3>
                 <p>{c[2]}</p>
-                {i<2?<button>开始病例训练 →</button>:<small>后续开放</small>}
+                <button>开始病例训练 →</button>
               </div>
             </article>
           ))}
@@ -416,7 +423,25 @@ export default function Home() {
             <button className="close" onClick={() => setTool(null)}>
               ×
             </button>
-            {tool === "PATH-UPPER" ? (
+            {tool === "PATH-NEGLECT" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">CLINICAL PATHWAY 03</span><h2>偏侧忽略与安全转移路径</h2><p>先确认医学稳定性，并区分空间忽略、视野缺损、感觉障碍和理解问题。</p></div>
+                <div className="pathInputs"><label>主要忽略侧<select value={neglectSide} onChange={(e)=>setNeglectSide(e.target.value)}><option>左侧</option><option>右侧</option><option>双侧／不明确</option></select></label><label>功能任务中的表现<select value={neglectLevel} onChange={(e)=>setNeglectLevel(e.target.value)}><option>轻度</option><option>中度</option><option>重度</option></select></label><label>TIS总分<input type="number" min="0" max="23" value={neglectTis} onChange={(e)=>setNeglectTis(Math.max(0,Math.min(23,Number(e.target.value)||0)))} /></label><label>当前转移协助<select value={transferHelp} onChange={(e)=>setTransferHelp(e.target.value)}><option>监督／口头提示</option><option>一人少量帮助</option><option>一人较多帮助</option><option>两人帮助或机械辅助</option></select></label></div>
+                <div className="pathPlan"><div className="pathPriority"><span>当前优先方向</span><h3>{neglectLevel==="重度"?"建立患侧觉察并降低转移碰撞与跌倒风险":neglectTis<14?"在坐位躯干控制中加入患侧扫描和对称负重":"把患侧扫描策略迁移到转移与日常任务"}</h3><p>主要记录{neglectSide}忽略，当前转移需要“{transferHelp}”。应观察患者在自然任务中的遗漏，而不只依赖纸笔筛查。</p></div><div className="pathColumns"><article><span>安全布置</span><ul><li>轮椅、床和患肢位置清晰可见并得到支持</li><li>转移前固定刹车、移开脚踏并检查地面</li><li>重要呼叫设备先放在能可靠发现的一侧，再逐步训练患侧搜索</li></ul></article><article><span>训练重点</span><ul><li>使用视觉锚定、头眼转向和系统扫描</li><li>在梳洗、穿衣、桌面搜索和转移中反复练习</li><li>提供短而一致的提示，并逐步减少提示</li><li>同步处理感觉、坐位平衡和动作计划问题</li></ul></article><article><span>复评计划</span><ul><li>记录遗漏、碰撞和患侧肢体保护次数</li><li>TIS、转移协助等级及实际任务表现</li><li>比较结构化筛查与自然环境中的差异</li><li>观察策略能否迁移到新环境</li></ul></article></div></div>
+                <div className="interpret"><h3>解释边界</h3><p>偏侧忽略不等同于偏盲。若怀疑视野缺损、眼球运动异常或症状突然变化，应转介相应专业评估或按急性卒中流程处理。</p></div>
+              </>
+            ) : tool === "CASE-NEGLECT" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">CASE-BASED LEARNING 03</span><h2>病例：忽略导致的转移困难</h2><p>右侧大脑半球梗死后3周，左侧偏瘫。患者坐起后常遗漏左手，床椅转移时身体偏向右侧，并撞到左侧脚踏。</p></div>
+                <div className="caseFacts"><span>生命体征稳定</span><span>TIS 12/23</span><span>左侧轻触减退</span><span>可理解简短指令</span></div>
+                <div className="quiz">{[
+                  {q:"1. 转移前最重要的准备是什么？",opts:["直接从健侧快速拉起","确认刹车、脚踏、双足和左上肢位置，并让患者主动扫描左侧","把所有物品永久放在右侧"],correct:1,why:"先消除环境危险，并在任务开始前建立患侧身体和空间觉察。"},
+                  {q:"2. 哪种训练更可能迁移到日常转移？",opts:["只做纸笔划消训练","把视觉锚定、头眼转向和左侧搜索嵌入坐起、穿鞋及床椅转移","反复提醒“注意左边”但不改变任务"],correct:1,why:"结构化扫描练习应与真实活动结合，并逐步减少提示。"},
+                  {q:"3. 如何判断真正改善？",opts:["纸笔测试分数提高即可","同时减少自然任务中的遗漏、碰撞和协助量，并能在新环境使用策略","患者能说出自己有忽略"],correct:1,why:"功能改善需要在真实任务和不同环境中验证，而不仅是知道策略或完成单一测试。"},
+                ].map((q,qi)=><section className="quizitem" key={q.q}><h3>{q.q}</h3>{q.opts.map((o,oi)=><button className={neglectAnswers[qi]===oi?(oi===q.correct?"correct":"wrong"):""} onClick={()=>setNeglectAnswers(a=>a.map((v,i)=>i===qi?oi:v))} key={o}>{o}</button>)}{neglectAnswers[qi]>=0?<p className={neglectAnswers[qi]===q.correct?"ok":"retry"}>{neglectAnswers[qi]===q.correct?"判断合理。":"再想一步。"} {q.why}</p>:null}</section>)}</div>
+                <div className="caseResult"><strong>{neglectAnswers.filter(a=>a===1).length}/3</strong><div><b>{neglectAnswers.every(a=>a>=0)?"本轮已完成":"完成三个转移安全决策"}</b><p>把扫描策略嵌入真实任务，并用遗漏、碰撞和协助量验证迁移。</p></div><button className="outline" onClick={()=>setNeglectAnswers([-1,-1,-1])}>重新训练</button></div>
+              </>
+            ) : tool === "PATH-UPPER" ? (
               <>
                 <div className="tooltitle"><span className="kicker">CLINICAL PATHWAY 02</span><h2>脑卒中上肢与手功能路径</h2><p>以安全、运动阶段和患者真实任务为主线，不以单一分数决定训练方式。</p></div>
                 <div className="pathInputs"><label>Brunnstrom上肢<select value={upperStage} onChange={(e)=>setUpperStage(Number(e.target.value))}>{brStages.map(x=><option value={x.stage} key={x.stage}>{x.stage}期 · {x.title}</option>)}</select></label><label>Brunnstrom手<select value={handStage} onChange={(e)=>setHandStage(Number(e.target.value))}>{brStages.map(x=><option value={x.stage} key={x.stage}>{x.stage}期 · {x.title}</option>)}</select></label><label>FMA-UE<input type="number" min="0" max="66" value={upperFma} onChange={(e)=>setUpperFma(Math.max(0,Math.min(66,Number(e.target.value)||0)))} /></label><label>肩痛 NRS 0–10<input type="number" min="0" max="10" value={upperPain} onChange={(e)=>setUpperPain(Math.max(0,Math.min(10,Number(e.target.value)||0)))} /></label><label>目标任务<select value={upperTask} onChange={(e)=>setUpperTask(e.target.value)}><option>摆位与患肢保护</option><option>辅助稳定物品</option><option>主动抓握与释放</option><option>双手完成日常活动</option><option>精细操作与工作任务</option></select></label></div>
