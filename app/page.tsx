@@ -78,6 +78,7 @@ type MasRecord = {
   note: string;
 };
 type BiRecord={date:string;total:number;note:string};
+type TisRecord={date:string;staticScore:number;dynamicScore:number;coordinationScore:number;note:string};
 const biItems=[
  {name:"进食",options:[[0,"不能独立进食"],[5,"需要切食、涂抹或监督"],[10,"独立进食"]]},
  {name:"洗澡",options:[[0,"需要帮助"],[5,"独立完成"]]},
@@ -120,11 +121,13 @@ export default function Home() {
   const [masNote, setMasNote] = useState("");
   const [masRecords, setMasRecords] = useState<MasRecord[]>([]);
   const [biScores,setBiScores]=useState<number[]>(Array(10).fill(0)); const [biNote,setBiNote]=useState(""); const [biRecords,setBiRecords]=useState<BiRecord[]>([]);
+  const [tisStatic,setTisStatic]=useState(0); const [tisDynamic,setTisDynamic]=useState(0); const [tisCoord,setTisCoord]=useState(0); const [tisNote,setTisNote]=useState(""); const [tisRecords,setTisRecords]=useState<TisRecord[]>([]);
   useEffect(() => {
     try {
       setRecords(JSON.parse(localStorage.getItem("zuka-10mwt") || "[]"));
       setMasRecords(JSON.parse(localStorage.getItem("zuka-mas") || "[]"));
       setBiRecords(JSON.parse(localStorage.getItem("zuka-bi") || "[]"));
+      setTisRecords(JSON.parse(localStorage.getItem("zuka-tis") || "[]"));
     } catch {}
   }, []);
   const filtered = useMemo(
@@ -177,6 +180,8 @@ export default function Home() {
   const biTotal=biScores.reduce((a,b)=>a+b,0);
   const biLevel=biTotal===100?"基本日常生活活动独立":biTotal>=91?"轻度依赖":biTotal>=61?"中度依赖":biTotal>=21?"重度依赖":"完全依赖";
   function saveBi(){const next=[{date:new Date().toLocaleString("zh-CN"),total:biTotal,note:biNote.trim()},...biRecords].slice(0,8);setBiRecords(next);localStorage.setItem("zuka-bi",JSON.stringify(next));}
+  const tisTotal=tisStatic+tisDynamic+tisCoord;
+  function saveTis(){const next=[{date:new Date().toLocaleString("zh-CN"),staticScore:tisStatic,dynamicScore:tisDynamic,coordinationScore:tisCoord,note:tisNote.trim()},...tisRecords].slice(0,8);setTisRecords(next);localStorage.setItem("zuka-tis",JSON.stringify(next));}
   return (
     <main>
       <header className="topbar">
@@ -582,6 +587,17 @@ export default function Home() {
                 <label className="binote">本次备注（可选）<textarea value={biNote} onChange={(e)=>setBiNote(e.target.value)} placeholder="例如：实际观察、辅助器具、照护者协助或环境限制" /></label><button className="primary" onClick={saveBi}>保存本次结果</button>
                 <div className="interpret"><h3>结果解释</h3><div><span><b>0–20分</b>完全依赖</span><span><b>21–60分</b>重度依赖</span><span><b>61–90分</b>中度依赖</span><span><b>91–99分</b>轻度依赖</span><span><b>100分</b>基本ADL独立</span></div><p>分层名称是常用临床参考，不同机构可能采用不同解释。BI存在0–20分等其他版本，复评时必须使用同一版本，不能直接混合比较。</p></div>
                 <div className="history"><h3>本机历史记录</h3>{biRecords.length?<div className="historylist">{biRecords.map((r,i)=><div key={i}><span>{r.date}</span><b>{r.total}/100</b><small>{r.note||"无备注"}</small></div>)}</div>:<p>尚无保存记录。记录仅保存在当前浏览器中。</p>}</div>
+              </>
+            ) : tool === "TIS" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">TRUNK PERFORMANCE</span><h2>躯干损伤量表 <small>TIS · Verheyden 2004</small></h2><p>分别记录静态坐位平衡、动态坐位平衡和躯干协调，总分0–23分。</p></div>
+                <div className="tisintro"><div><b>17个条目</b><span>每项最多尝试3次，记录最高表现</span></div><div><b>起始要求</b><span>允许坐起并能理解基本指令</span></div><div><b>重要规则</b><span>第1项为0分时，TIS总分记0分</span></div></div>
+                <div className="tisbody"><article className="tisscales">
+                  {[{name:"静态坐位平衡",help:"维持坐位、交叉双腿及保持躯干稳定",max:7,value:tisStatic,set:setTisStatic},{name:"动态坐位平衡",help:"躯干侧屈、缩短与延长两侧躯干",max:10,value:tisDynamic,set:setTisDynamic},{name:"协调",help:"上、下躯干旋转的对称性与速度",max:6,value:tisCoord,set:setTisCoord}].map((x)=><section className="tisscale" key={x.name}><div><b>{x.name}</b><span>{x.help}</span></div><output>{x.value}<small>/{x.max}</small></output><input type="range" min="0" max={x.max} step="1" value={x.value} onChange={(e)=>x.set(Number(e.target.value))} aria-label={`${x.name}得分`} /><div className="tisbuttons">{Array.from({length:x.max+1},(_,n)=><button className={x.value===n?"on":""} onClick={()=>x.set(n)} key={n}>{n}</button>)}</div></section>)}
+                  <label className="binote">本次备注（可选）<textarea value={tisNote} onChange={(e)=>setTisNote(e.target.value)} placeholder="例如：代偿方式、不对称、疲劳或疼痛" /></label><button className="primary" onClick={saveTis}>保存本次结果</button>
+                </article><aside className="tissummary"><span>当前总分</span><strong>{tisTotal}</strong><em>/ 23</em><div><p>静态坐位平衡<b>{tisStatic}/7</b></p><p>动态坐位平衡<b>{tisDynamic}/10</b></p><p>协调<b>{tisCoord}/6</b></p></div><small>得分越高表示躯干控制表现越好。</small></aside></div>
+                <div className="interpret"><h3>临床使用提示</h3><p>这里采用Verheyden等人在2004年提出的0–23分TIS；另有同名量表和删除静态分域的TIS 2.0，记录时必须注明版本。</p><p>TIS没有适用于所有患者的统一“轻、中、重”分界值。建议观察三个分域的变化，并结合坐位功能、转移、站立平衡和步行能力解释。</p></div>
+                <div className="history"><h3>本机历史记录</h3>{tisRecords.length?<div className="historylist">{tisRecords.map((r,i)=><div key={i}><span>{r.date}</span><b>{r.staticScore+r.dynamicScore+r.coordinationScore}/23</b><small>静态 {r.staticScore}/7 · 动态 {r.dynamicScore}/10 · 协调 {r.coordinationScore}/6{r.note?` · ${r.note}`:""}</small></div>)}</div>:<p>尚无保存记录。记录仅保存在当前浏览器中。</p>}</div>
               </>
             ) : (
               <div className="coming">
