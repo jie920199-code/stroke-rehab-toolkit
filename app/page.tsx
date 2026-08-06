@@ -11,6 +11,13 @@ const assessments = [
     note: "上下肢运动、感觉与平衡的系统评估",
   },
   {
+    name: "Brunnstrom运动恢复分期",
+    abbr: "BR",
+    area: "运动功能",
+    time: "5–10分钟",
+    note: "分别记录上肢、手和下肢的运动恢复阶段",
+  },
+  {
     name: "脑卒中感觉功能评估",
     abbr: "SENS",
     area: "感觉功能",
@@ -89,6 +96,15 @@ type TisRecord={date:string;staticScore:number;dynamicScore:number;coordinationS
 type FmaRecord={date:string;ue:number;le:number;sensation:number;balance:number;rom:number;pain:number;note:string};
 type SensRecord={date:string;side:string;results:string[];note:string};
 type BbsRecord={date:string;total:number;scores:number[]};
+type BrRecord={date:string;upper:number;hand:number;lower:number;note:string};
+const brStages=[
+ {stage:1,title:"弛缓期",text:"无随意运动，肌张力低下或弛缓。"},
+ {stage:2,title:"协同运动开始出现",text:"痉挛开始出现，可见微弱随意运动或基本协同运动成分。"},
+ {stage:3,title:"协同运动占优势",text:"可随意完成屈肌或伸肌协同运动，痉挛通常较明显。"},
+ {stage:4,title:"脱离协同运动",text:"痉挛开始减弱，可完成部分脱离基本协同模式的组合运动。"},
+ {stage:5,title:"分离运动进一步改善",text:"可完成更复杂、较独立于基本协同模式的运动，痉挛继续减弱。"},
+ {stage:6,title:"接近正常协调",text:"可进行较独立的关节运动，协调和速度接近正常，痉挛很轻或消失。"},
+];
 const sensItems=[
  {group:"浅感觉",name:"轻触觉",help:"闭眼，随机触碰并与健侧对应部位比较"},{group:"浅感觉",name:"针刺觉／锐钝辨别",help:"使用一次性安全工具，避免破损皮肤"},{group:"浅感觉",name:"温度觉",help:"仅在有指征且能安全控制温度时检查"},{group:"深感觉",name:"关节位置觉",help:"握持指（趾）侧面，小幅上下移动"},{group:"深感觉",name:"运动觉",help:"识别关节被动运动的方向"},{group:"皮质感觉",name:"触觉定位",help:"指出被触碰的准确身体部位"},{group:"皮质感觉",name:"双侧同时刺激",help:"比较单侧与双侧刺激，观察感觉消退"},{group:"皮质感觉",name:"实体觉",help:"闭眼辨认熟悉、安全的日常物品"},{group:"皮质感觉",name:"图形觉",help:"在手掌书写简单数字或图形并辨认"},
 ];
@@ -138,6 +154,7 @@ export default function Home() {
   const [tisStatic,setTisStatic]=useState(0); const [tisDynamic,setTisDynamic]=useState(0); const [tisCoord,setTisCoord]=useState(0); const [tisNote,setTisNote]=useState(""); const [tisRecords,setTisRecords]=useState<TisRecord[]>([]);
   const [fmaScores,setFmaScores]=useState([0,0,0,0,0,0]); const [fmaNote,setFmaNote]=useState(""); const [fmaRecords,setFmaRecords]=useState<FmaRecord[]>([]);
   const [sensSide,setSensSide]=useState("左侧"); const [sensResults,setSensResults]=useState<string[]>(Array(sensItems.length).fill("未测")); const [sensNote,setSensNote]=useState(""); const [sensRecords,setSensRecords]=useState<SensRecord[]>([]);
+  const [brUpper,setBrUpper]=useState(1); const [brHand,setBrHand]=useState(1); const [brLower,setBrLower]=useState(1); const [brNote,setBrNote]=useState(""); const [brRecords,setBrRecords]=useState<BrRecord[]>([]);
   useEffect(() => {
     try {
       setRecords(JSON.parse(localStorage.getItem("zuka-10mwt") || "[]"));
@@ -147,6 +164,7 @@ export default function Home() {
       setFmaRecords(JSON.parse(localStorage.getItem("zuka-fma") || "[]"));
       setSensRecords(JSON.parse(localStorage.getItem("zuka-sens") || "[]"));
       setBbsRecords(JSON.parse(localStorage.getItem("zuka-bbs") || "[]"));
+      setBrRecords(JSON.parse(localStorage.getItem("zuka-br") || "[]"));
     } catch {}
   }, []);
   const filtered = useMemo(
@@ -206,8 +224,9 @@ export default function Home() {
   function saveFma(){const next=[{date:new Date().toLocaleString("zh-CN"),ue:fmaScores[0],le:fmaScores[1],sensation:fmaScores[2],balance:fmaScores[3],rom:fmaScores[4],pain:fmaScores[5],note:fmaNote.trim()},...fmaRecords].slice(0,8);setFmaRecords(next);localStorage.setItem("zuka-fma",JSON.stringify(next));}
   const sensTested=sensResults.filter((x)=>x!=="未测").length,sensAbnormal=sensResults.filter((x)=>x!=="未测"&&x!=="正常").length;
   function saveSens(){const next=[{date:new Date().toLocaleString("zh-CN"),side:sensSide,results:sensResults,note:sensNote.trim()},...sensRecords].slice(0,8);setSensRecords(next);localStorage.setItem("zuka-sens",JSON.stringify(next));}
-  const totalRecords=records.length+bbsRecords.length+masRecords.length+biRecords.length+tisRecords.length+fmaRecords.length+sensRecords.length;
-  function exportRecords(){const payload={exportedAt:new Date().toISOString(),app:"卒康",version:1,records:{walk10m:records,bbs:bbsRecords,mas:masRecords,barthel:biRecords,tis:tisRecords,fma:fmaRecords,sensory:sensRecords}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`卒康评估记录-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);}
+  function saveBr(){const next=[{date:new Date().toLocaleString("zh-CN"),upper:brUpper,hand:brHand,lower:brLower,note:brNote.trim()},...brRecords].slice(0,8);setBrRecords(next);localStorage.setItem("zuka-br",JSON.stringify(next));}
+  const totalRecords=records.length+bbsRecords.length+masRecords.length+biRecords.length+tisRecords.length+fmaRecords.length+sensRecords.length+brRecords.length;
+  function exportRecords(){const payload={exportedAt:new Date().toISOString(),app:"卒康",version:1,records:{walk10m:records,bbs:bbsRecords,mas:masRecords,barthel:biRecords,tis:tisRecords,fma:fmaRecords,sensory:sensRecords,brunnstrom:brRecords}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`卒康评估记录-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);}
   return (
     <main>
       <header className="topbar">
@@ -636,6 +655,14 @@ export default function Home() {
                 <div className="interpret"><h3>记录与解释</h3><p>报告结果时应写明具体版本和分域，例如“FMA-UE 38/66”或“FMA运动分 62/100”，不要只写“FMA 62分”。</p><p>本页面用于汇总已经依据正式评分表完成的分域得分，不替代标准化条目说明、演示与评定者培训；连续复评应保持受累侧、版本和测试条件一致。</p></div>
                 <div className="history"><h3>本机历史记录</h3>{fmaRecords.length?<div className="historylist">{fmaRecords.map((r,i)=><div key={i}><span>{r.date}</span><b>运动 {r.ue+r.le}/100</b><small>UE {r.ue}/66 · LE {r.le}/34 · 完整 {r.ue+r.le+r.sensation+r.balance+r.rom+r.pain}/226{r.note?` · ${r.note}`:""}</small></div>)}</div>:<p>尚无保存记录。记录仅保存在当前浏览器中。</p>}</div>
               </>
+            ) : tool === "BR" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">MOTOR RECOVERY STAGING</span><h2>Brunnstrom 运动恢复分期 <small>经典六阶段</small></h2><p>分别记录上肢、手和下肢的主要运动恢复表现。</p></div>
+                <div className="brintro"><div><b>分区记录</b><span>上肢、手、下肢分别判断</span></div><div><b>结果性质</b><span>1–6期为顺序等级，不是等距分数</span></div><div><b>复评原则</b><span>保持体位、指令和观察条件一致</span></div></div>
+                <div className="brbody"><article className="brdomains">{[{name:"上肢",value:brUpper,set:setBrUpper},{name:"手",value:brHand,set:setBrHand},{name:"下肢",value:brLower,set:setBrLower}].map((d)=><section className="brdomain" key={d.name}><header><div><b>{d.name}</b><span>当前第 {d.value} 期 · {brStages[d.value-1].title}</span></div><strong>{d.value}</strong></header><div className="brstages">{brStages.map((s)=><button className={d.value===s.stage?"on":""} onClick={()=>d.set(s.stage)} key={s.stage} aria-label={`${d.name}第${s.stage}期`}>{s.stage}</button>)}</div><p>{brStages[d.value-1].text}</p></section>)}<label className="binote">临床备注（可选）<textarea value={brNote} onChange={(e)=>setBrNote(e.target.value)} placeholder="例如：患侧、诱发条件、痉挛、代偿、疼痛或任务表现" /></label><button className="primary" onClick={saveBr}>保存本次分期</button></article><aside className="brsummary"><span>本次分期</span><p>上肢 <b>第 {brUpper} 期</b></p><p>手 <b>第 {brHand} 期</b></p><p>下肢 <b>第 {brLower} 期</b></p><small>三个区域恢复速度可能不同，不计算平均期或总分。</small></aside></div>
+                <div className="interpret"><h3>临床解释边界</h3><p>经典Brunnstrom分期描述从弛缓、协同运动占优势到分离运动和协调改善的六个阶段，但个体恢复不一定严格线性，也不一定经历每一阶段。</p><p>疼痛、关节挛缩、肌力、共济失调、忽略及认知沟通问题都可能影响观察。建议同时记录FMA分域和真实功能任务，不以分期单独决定治疗方案。</p></div>
+                <div className="history"><h3>本机历史记录</h3>{brRecords.length?<div className="historylist">{brRecords.map((r,i)=><div key={i}><span>{r.date}</span><b>上肢 {r.upper}期 · 手 {r.hand}期 · 下肢 {r.lower}期</b><small>{r.note||"无备注"}</small></div>)}</div>:<p>尚无保存记录。记录仅保存在当前浏览器中。</p>}</div>
+              </>
             ) : tool === "SENS" ? (
               <>
                 <div className="tooltitle"><span className="kicker">POST-STROKE SENSORY SCREEN</span><h2>脑卒中感觉功能评估 <small>结构化床旁筛查</small></h2><p>按浅感觉、深感觉和皮质感觉分层记录，并与对侧对应部位比较。</p></div>
@@ -649,7 +676,7 @@ export default function Home() {
             ) : tool === "DASH" ? (
               <>
                 <div className="tooltitle"><span className="kicker">THERAPIST WORKSPACE</span><h2>治疗师工作台</h2><p>集中查看当前浏览器中保存的评估记录，并导出备份。</p></div>
-                <div className="dashhero"><div><span>本机累计记录</span><strong>{totalRecords}</strong><small>条</small></div><div><span>已有记录工具</span><strong>{[records,bbsRecords,masRecords,biRecords,tisRecords,fmaRecords,sensRecords].filter((x)=>x.length).length}</strong><small>/ 7</small></div><button className="primary" onClick={exportRecords} disabled={!totalRecords}>导出全部记录（JSON）</button></div>
+                <div className="dashhero"><div><span>本机累计记录</span><strong>{totalRecords}</strong><small>条</small></div><div><span>已有记录工具</span><strong>{[records,bbsRecords,masRecords,biRecords,tisRecords,fmaRecords,sensRecords,brRecords].filter((x)=>x.length).length}</strong><small>/ 8</small></div><button className="primary" onClick={exportRecords} disabled={!totalRecords}>导出全部记录（JSON）</button></div>
                 <div className="dashgrid">
                   <article><span>10MWT</span><h3>10米步行测试</h3><b>{records[0]?`${records[0].speed.toFixed(2)} m/s`:"暂无记录"}</b><small>{records[0]?.date||"—"}</small><button onClick={()=>setTool("10MWT")}>打开工具</button></article>
                   <article><span>BBS</span><h3>Berg 平衡量表</h3><b>{bbsRecords[0]?`${bbsRecords[0].total}/56`:"暂无记录"}</b><small>{bbsRecords[0]?.date||"—"}</small><button onClick={()=>setTool("BBS")}>打开工具</button></article>
@@ -657,6 +684,7 @@ export default function Home() {
                   <article><span>BI</span><h3>Barthel 指数</h3><b>{biRecords[0]?`${biRecords[0].total}/100`:"暂无记录"}</b><small>{biRecords[0]?.date||"—"}</small><button onClick={()=>setTool("BI")}>打开工具</button></article>
                   <article><span>TIS</span><h3>躯干损伤量表</h3><b>{tisRecords[0]?`${tisRecords[0].staticScore+tisRecords[0].dynamicScore+tisRecords[0].coordinationScore}/23`:"暂无记录"}</b><small>{tisRecords[0]?.date||"—"}</small><button onClick={()=>setTool("TIS")}>打开工具</button></article>
                   <article><span>FMA</span><h3>Fugl-Meyer 评定</h3><b>{fmaRecords[0]?`运动 ${fmaRecords[0].ue+fmaRecords[0].le}/100`:"暂无记录"}</b><small>{fmaRecords[0]?.date||"—"}</small><button onClick={()=>setTool("FMA")}>打开工具</button></article>
+                  <article><span>BR</span><h3>Brunnstrom 分期</h3><b>{brRecords[0]?`上肢 ${brRecords[0].upper} · 手 ${brRecords[0].hand} · 下肢 ${brRecords[0].lower}`:"暂无记录"}</b><small>{brRecords[0]?.date||"—"}</small><button onClick={()=>setTool("BR")}>打开工具</button></article>
                   <article><span>SENS</span><h3>感觉功能筛查</h3><b>{sensRecords[0]?`${sensRecords[0].results.filter((x)=>x!=="未测"&&x!=="正常").length}项异常`:"暂无记录"}</b><small>{sensRecords[0]?.date||"—"}</small><button onClick={()=>setTool("SENS")}>打开工具</button></article>
                 </div>
                 <div className="privacy"><b>数据说明</b><p>所有记录仅保存在当前浏览器，不会自动上传。清除浏览器数据或更换设备可能导致记录丢失，请定期导出备份。导出文件可能包含临床备注，请按所在机构的隐私规范妥善保存。</p></div>
