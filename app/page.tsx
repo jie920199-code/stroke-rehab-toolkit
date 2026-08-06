@@ -39,6 +39,13 @@ const assessments = [
     note: "量化舒适或最快步行速度，便于连续复评",
   },
   {
+    name: "功能性步行分级",
+    abbr: "FAC",
+    area: "步行",
+    time: "3–5分钟",
+    note: "按步行所需的人身帮助程度记录0–5级",
+  },
+  {
     name: "改良Ashworth量表",
     abbr: "MAS",
     area: "肌张力",
@@ -97,6 +104,15 @@ type FmaRecord={date:string;ue:number;le:number;sensation:number;balance:number;
 type SensRecord={date:string;side:string;results:string[];note:string};
 type BbsRecord={date:string;total:number;scores:number[]};
 type BrRecord={date:string;upper:number;hand:number;lower:number;note:string};
+type FacRecord={date:string;level:number;device:string;note:string};
+const facLevels=[
+ {level:0,title:"不能功能性步行",text:"不能步行，或需要两人及以上帮助。"},
+ {level:1,title:"需持续较多帮助",text:"需要一人持续用手支持身体重量并帮助维持平衡或协调。"},
+ {level:2,title:"需持续或间歇轻触帮助",text:"需要一人以轻触方式帮助平衡或协调，但不承担身体重量。"},
+ {level:3,title:"需监护或口头提示",text:"无需身体接触，但需要一人近距离监护、待命或给予口头提示。"},
+ {level:4,title:"平整地面独立",text:"可在平整地面独立步行，但楼梯、坡道或不平地面仍需帮助。"},
+ {level:5,title:"各种地面独立",text:"可在平整及不平地面、坡道和楼梯上独立步行。"},
+];
 const brStages=[
  {stage:1,title:"弛缓期",text:"无随意运动，肌张力低下或弛缓。"},
  {stage:2,title:"协同运动开始出现",text:"痉挛开始出现，可见微弱随意运动或基本协同运动成分。"},
@@ -155,6 +171,7 @@ export default function Home() {
   const [fmaScores,setFmaScores]=useState([0,0,0,0,0,0]); const [fmaNote,setFmaNote]=useState(""); const [fmaRecords,setFmaRecords]=useState<FmaRecord[]>([]);
   const [sensSide,setSensSide]=useState("左侧"); const [sensResults,setSensResults]=useState<string[]>(Array(sensItems.length).fill("未测")); const [sensNote,setSensNote]=useState(""); const [sensRecords,setSensRecords]=useState<SensRecord[]>([]);
   const [brUpper,setBrUpper]=useState(1); const [brHand,setBrHand]=useState(1); const [brLower,setBrLower]=useState(1); const [brNote,setBrNote]=useState(""); const [brRecords,setBrRecords]=useState<BrRecord[]>([]);
+  const [facLevel,setFacLevel]=useState(0); const [facDevice,setFacDevice]=useState("无"); const [facNote,setFacNote]=useState(""); const [facRecords,setFacRecords]=useState<FacRecord[]>([]);
   useEffect(() => {
     try {
       setRecords(JSON.parse(localStorage.getItem("zuka-10mwt") || "[]"));
@@ -165,6 +182,7 @@ export default function Home() {
       setSensRecords(JSON.parse(localStorage.getItem("zuka-sens") || "[]"));
       setBbsRecords(JSON.parse(localStorage.getItem("zuka-bbs") || "[]"));
       setBrRecords(JSON.parse(localStorage.getItem("zuka-br") || "[]"));
+      setFacRecords(JSON.parse(localStorage.getItem("zuka-fac") || "[]"));
     } catch {}
   }, []);
   const filtered = useMemo(
@@ -225,8 +243,9 @@ export default function Home() {
   const sensTested=sensResults.filter((x)=>x!=="未测").length,sensAbnormal=sensResults.filter((x)=>x!=="未测"&&x!=="正常").length;
   function saveSens(){const next=[{date:new Date().toLocaleString("zh-CN"),side:sensSide,results:sensResults,note:sensNote.trim()},...sensRecords].slice(0,8);setSensRecords(next);localStorage.setItem("zuka-sens",JSON.stringify(next));}
   function saveBr(){const next=[{date:new Date().toLocaleString("zh-CN"),upper:brUpper,hand:brHand,lower:brLower,note:brNote.trim()},...brRecords].slice(0,8);setBrRecords(next);localStorage.setItem("zuka-br",JSON.stringify(next));}
-  const totalRecords=records.length+bbsRecords.length+masRecords.length+biRecords.length+tisRecords.length+fmaRecords.length+sensRecords.length+brRecords.length;
-  function exportRecords(){const payload={exportedAt:new Date().toISOString(),app:"卒康",version:1,records:{walk10m:records,bbs:bbsRecords,mas:masRecords,barthel:biRecords,tis:tisRecords,fma:fmaRecords,sensory:sensRecords,brunnstrom:brRecords}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`卒康评估记录-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);}
+  function saveFac(){const next=[{date:new Date().toLocaleString("zh-CN"),level:facLevel,device:facDevice,note:facNote.trim()},...facRecords].slice(0,8);setFacRecords(next);localStorage.setItem("zuka-fac",JSON.stringify(next));}
+  const totalRecords=records.length+bbsRecords.length+masRecords.length+biRecords.length+tisRecords.length+fmaRecords.length+sensRecords.length+brRecords.length+facRecords.length;
+  function exportRecords(){const payload={exportedAt:new Date().toISOString(),app:"卒康",version:1,records:{walk10m:records,fac:facRecords,bbs:bbsRecords,mas:masRecords,barthel:biRecords,tis:tisRecords,fma:fmaRecords,sensory:sensRecords,brunnstrom:brRecords}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`卒康评估记录-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);}
   return (
     <main>
       <header className="topbar">
@@ -508,6 +527,14 @@ export default function Home() {
                   )}
                 </div>
               </>
+            ) : tool === "FAC" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">FUNCTIONAL AMBULATION</span><h2>功能性步行分级 <small>FAC · 0–5级</small></h2><p>根据患者步行时需要的人身帮助程度进行分级。</p></div>
+                <div className="facintro"><div><b>评定核心</b><span>关注人身帮助，而非单纯使用辅助器具</span></div><div><b>结果范围</b><span>0级不能功能性步行，5级各种地面独立</span></div><div><b>复评记录</b><span>同时注明辅助器具、矫形器和环境</span></div></div>
+                <div className="facbody"><article className="faclevels">{facLevels.map((x)=><button className={facLevel===x.level?"on":""} onClick={()=>setFacLevel(x.level)} key={x.level}><strong>{x.level}</strong><span><b>{x.title}</b><small>{x.text}</small></span></button>)}<label className="facfield">辅助器具／矫形器<select value={facDevice} onChange={(e)=>setFacDevice(e.target.value)}><option>无</option><option>手杖</option><option>四脚杖</option><option>助行器</option><option>踝足矫形器</option><option>轮椅随行</option><option>其他</option></select></label><label className="binote">本次备注（可选）<textarea value={facNote} onChange={(e)=>setFacNote(e.target.value)} placeholder="例如：室内走廊、治疗师在患侧保护、需转弯提示" /></label><button className="primary" onClick={saveFac}>保存本次分级</button></article><aside className="facsummary"><span>当前等级</span><strong>{facLevel}</strong><em>/ 5</em><b>{facLevels[facLevel].title}</b><p>{facLevels[facLevel].text}</p></aside></div>
+                <div className="interpret"><h3>临床使用提示</h3><p>FAC是0–5级顺序量表，主要反映步行所需的人身帮助。使用手杖或矫形器并不自动降低等级，关键是患者是否需要他人身体接触、监护或帮助。</p><p>FAC不能替代步行速度、耐力、跌倒风险和社区环境评估，建议结合10MWT、BBS及实际任务综合解释。</p></div>
+                <div className="history"><h3>本机历史记录</h3>{facRecords.length?<div className="historylist">{facRecords.map((r,i)=><div key={i}><span>{r.date}</span><b>FAC {r.level} · {facLevels[r.level].title}</b><small>{r.device}{r.note?` · ${r.note}`:""}</small></div>)}</div>:<p>尚无保存记录。记录仅保存在当前浏览器中。</p>}</div>
+              </>
             ) : tool === "BBS" ? (
               <>
                 <div className="tooltitle">
@@ -676,9 +703,10 @@ export default function Home() {
             ) : tool === "DASH" ? (
               <>
                 <div className="tooltitle"><span className="kicker">THERAPIST WORKSPACE</span><h2>治疗师工作台</h2><p>集中查看当前浏览器中保存的评估记录，并导出备份。</p></div>
-                <div className="dashhero"><div><span>本机累计记录</span><strong>{totalRecords}</strong><small>条</small></div><div><span>已有记录工具</span><strong>{[records,bbsRecords,masRecords,biRecords,tisRecords,fmaRecords,sensRecords,brRecords].filter((x)=>x.length).length}</strong><small>/ 8</small></div><button className="primary" onClick={exportRecords} disabled={!totalRecords}>导出全部记录（JSON）</button></div>
+                <div className="dashhero"><div><span>本机累计记录</span><strong>{totalRecords}</strong><small>条</small></div><div><span>已有记录工具</span><strong>{[records,bbsRecords,masRecords,biRecords,tisRecords,fmaRecords,sensRecords,brRecords,facRecords].filter((x)=>x.length).length}</strong><small>/ 9</small></div><button className="primary" onClick={exportRecords} disabled={!totalRecords}>导出全部记录（JSON）</button></div>
                 <div className="dashgrid">
                   <article><span>10MWT</span><h3>10米步行测试</h3><b>{records[0]?`${records[0].speed.toFixed(2)} m/s`:"暂无记录"}</b><small>{records[0]?.date||"—"}</small><button onClick={()=>setTool("10MWT")}>打开工具</button></article>
+                  <article><span>FAC</span><h3>功能性步行分级</h3><b>{facRecords[0]?`FAC ${facRecords[0].level} · ${facLevels[facRecords[0].level].title}`:"暂无记录"}</b><small>{facRecords[0]?.date||"—"}</small><button onClick={()=>setTool("FAC")}>打开工具</button></article>
                   <article><span>BBS</span><h3>Berg 平衡量表</h3><b>{bbsRecords[0]?`${bbsRecords[0].total}/56`:"暂无记录"}</b><small>{bbsRecords[0]?.date||"—"}</small><button onClick={()=>setTool("BBS")}>打开工具</button></article>
                   <article><span>MAS</span><h3>改良 Ashworth 量表</h3><b>{masRecords[0]?`MAS ${masRecords[0].grade} · ${masRecords[0].side}${masRecords[0].muscle}`:"暂无记录"}</b><small>{masRecords[0]?.date||"—"}</small><button onClick={()=>setTool("MAS")}>打开工具</button></article>
                   <article><span>BI</span><h3>Barthel 指数</h3><b>{biRecords[0]?`${biRecords[0].total}/100`:"暂无记录"}</b><small>{biRecords[0]?.date||"—"}</small><button onClick={()=>setTool("BI")}>打开工具</button></article>
