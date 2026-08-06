@@ -79,6 +79,7 @@ type MasRecord = {
 };
 type BiRecord={date:string;total:number;note:string};
 type TisRecord={date:string;staticScore:number;dynamicScore:number;coordinationScore:number;note:string};
+type FmaRecord={date:string;ue:number;le:number;sensation:number;balance:number;rom:number;pain:number;note:string};
 const biItems=[
  {name:"进食",options:[[0,"不能独立进食"],[5,"需要切食、涂抹或监督"],[10,"独立进食"]]},
  {name:"洗澡",options:[[0,"需要帮助"],[5,"独立完成"]]},
@@ -122,12 +123,14 @@ export default function Home() {
   const [masRecords, setMasRecords] = useState<MasRecord[]>([]);
   const [biScores,setBiScores]=useState<number[]>(Array(10).fill(0)); const [biNote,setBiNote]=useState(""); const [biRecords,setBiRecords]=useState<BiRecord[]>([]);
   const [tisStatic,setTisStatic]=useState(0); const [tisDynamic,setTisDynamic]=useState(0); const [tisCoord,setTisCoord]=useState(0); const [tisNote,setTisNote]=useState(""); const [tisRecords,setTisRecords]=useState<TisRecord[]>([]);
+  const [fmaScores,setFmaScores]=useState([0,0,0,0,0,0]); const [fmaNote,setFmaNote]=useState(""); const [fmaRecords,setFmaRecords]=useState<FmaRecord[]>([]);
   useEffect(() => {
     try {
       setRecords(JSON.parse(localStorage.getItem("zuka-10mwt") || "[]"));
       setMasRecords(JSON.parse(localStorage.getItem("zuka-mas") || "[]"));
       setBiRecords(JSON.parse(localStorage.getItem("zuka-bi") || "[]"));
       setTisRecords(JSON.parse(localStorage.getItem("zuka-tis") || "[]"));
+      setFmaRecords(JSON.parse(localStorage.getItem("zuka-fma") || "[]"));
     } catch {}
   }, []);
   const filtered = useMemo(
@@ -182,6 +185,8 @@ export default function Home() {
   function saveBi(){const next=[{date:new Date().toLocaleString("zh-CN"),total:biTotal,note:biNote.trim()},...biRecords].slice(0,8);setBiRecords(next);localStorage.setItem("zuka-bi",JSON.stringify(next));}
   const tisTotal=tisStatic+tisDynamic+tisCoord;
   function saveTis(){const next=[{date:new Date().toLocaleString("zh-CN"),staticScore:tisStatic,dynamicScore:tisDynamic,coordinationScore:tisCoord,note:tisNote.trim()},...tisRecords].slice(0,8);setTisRecords(next);localStorage.setItem("zuka-tis",JSON.stringify(next));}
+  const fmaMotor=fmaScores[0]+fmaScores[1],fmaTotal=fmaScores.reduce((a,b)=>a+b,0);
+  function saveFma(){const next=[{date:new Date().toLocaleString("zh-CN"),ue:fmaScores[0],le:fmaScores[1],sensation:fmaScores[2],balance:fmaScores[3],rom:fmaScores[4],pain:fmaScores[5],note:fmaNote.trim()},...fmaRecords].slice(0,8);setFmaRecords(next);localStorage.setItem("zuka-fma",JSON.stringify(next));}
   return (
     <main>
       <header className="topbar">
@@ -598,6 +603,14 @@ export default function Home() {
                 </article><aside className="tissummary"><span>当前总分</span><strong>{tisTotal}</strong><em>/ 23</em><div><p>静态坐位平衡<b>{tisStatic}/7</b></p><p>动态坐位平衡<b>{tisDynamic}/10</b></p><p>协调<b>{tisCoord}/6</b></p></div><small>得分越高表示躯干控制表现越好。</small></aside></div>
                 <div className="interpret"><h3>临床使用提示</h3><p>这里采用Verheyden等人在2004年提出的0–23分TIS；另有同名量表和删除静态分域的TIS 2.0，记录时必须注明版本。</p><p>TIS没有适用于所有患者的统一“轻、中、重”分界值。建议观察三个分域的变化，并结合坐位功能、转移、站立平衡和步行能力解释。</p></div>
                 <div className="history"><h3>本机历史记录</h3>{tisRecords.length?<div className="historylist">{tisRecords.map((r,i)=><div key={i}><span>{r.date}</span><b>{r.staticScore+r.dynamicScore+r.coordinationScore}/23</b><small>静态 {r.staticScore}/7 · 动态 {r.dynamicScore}/10 · 协调 {r.coordinationScore}/6{r.note?` · ${r.note}`:""}</small></div>)}</div>:<p>尚无保存记录。记录仅保存在当前浏览器中。</p>}</div>
+              </>
+            ) : tool === "FMA" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">SENSORIMOTOR IMPAIRMENT</span><h2>Fugl-Meyer 评定 <small>FMA</small></h2><p>汇总脑卒中后运动、感觉、平衡、关节活动度与疼痛分域，避免混淆运动分与完整总分。</p></div>
+                <div className="fmaintro"><div><b>运动分</b><span>上肢66 + 下肢34 = 100分</span></div><div><b>完整评定</b><span>五大领域，总分0–226分</span></div><div><b>单项规则</b><span>通常按0、1、2三级评分</span></div></div>
+                <div className="fmabody"><article className="fmadomains">{[{name:"上肢运动",max:66,help:"反射、协同运动、腕、手与协调速度"},{name:"下肢运动",max:34,help:"反射、协同运动、站位及协调速度"},{name:"感觉",max:24,help:"轻触觉与本体感觉"},{name:"平衡",max:14,help:"坐位与站立平衡"},{name:"关节活动度",max:44,help:"上、下肢被动关节活动范围"},{name:"关节疼痛",max:44,help:"被动活动过程中的疼痛"}].map((x,i)=><label className="fmadomain" key={x.name}><span><b>{x.name}</b><small>{x.help}</small></span><input type="number" min="0" max={x.max} step="1" value={fmaScores[i]} onChange={(e)=>{const value=Math.max(0,Math.min(x.max,Number(e.target.value)||0));setFmaScores((s)=>s.map((v,n)=>n===i?value:v))}} /><em>/ {x.max}</em></label>)}<label className="binote">本次备注（可选）<textarea value={fmaNote} onChange={(e)=>setFmaNote(e.target.value)} placeholder="例如：受累侧、病程阶段、未测项目或疼痛限制" /></label><button className="primary" onClick={saveFma}>保存本次结果</button></article><aside className="fmasummary"><span>运动功能</span><strong>{fmaMotor}</strong><em>/100</em><p>上肢 <b>{fmaScores[0]}/66</b></p><p>下肢 <b>{fmaScores[1]}/34</b></p><div><span>完整FMA总分</span><b>{fmaTotal}/226</b></div><small>只有完成全部分域时，才应报告0–226分完整总分。</small></aside></div>
+                <div className="interpret"><h3>记录与解释</h3><p>报告结果时应写明具体版本和分域，例如“FMA-UE 38/66”或“FMA运动分 62/100”，不要只写“FMA 62分”。</p><p>本页面用于汇总已经依据正式评分表完成的分域得分，不替代标准化条目说明、演示与评定者培训；连续复评应保持受累侧、版本和测试条件一致。</p></div>
+                <div className="history"><h3>本机历史记录</h3>{fmaRecords.length?<div className="historylist">{fmaRecords.map((r,i)=><div key={i}><span>{r.date}</span><b>运动 {r.ue+r.le}/100</b><small>UE {r.ue}/66 · LE {r.le}/34 · 完整 {r.ue+r.le+r.sensation+r.balance+r.rom+r.pain}/226{r.note?` · ${r.note}`:""}</small></div>)}</div>:<p>尚无保存记录。记录仅保存在当前浏览器中。</p>}</div>
               </>
             ) : (
               <div className="coming">
