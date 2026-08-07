@@ -178,6 +178,8 @@ export default function Home() {
   const [shoulderAnswers,setShoulderAnswers]=useState<number[]>([-1,-1,-1]);
   const [neglectSide,setNeglectSide]=useState("左侧"); const [neglectLevel,setNeglectLevel]=useState("中度"); const [neglectTis,setNeglectTis]=useState(12); const [transferHelp,setTransferHelp]=useState("一人少量帮助");
   const [neglectAnswers,setNeglectAnswers]=useState<number[]>([-1,-1,-1]);
+  const [toneGrade,setToneGrade]=useState("2"); const [toneProm,setToneProm]=useState("被动活动范围基本完整"); const [tonePain,setTonePain]=useState(2); const [toneGoal,setToneGoal]=useState("改善步行足部着地");
+  const [toneAnswers,setToneAnswers]=useState<number[]>([-1,-1,-1]);
   useEffect(() => {
     try {
       setRecords(JSON.parse(localStorage.getItem("zuka-10mwt") || "[]"));
@@ -322,6 +324,11 @@ export default function Home() {
         <div className="pathPreview"><span>区分忽略与视野问题</span><b>训练扫描与锚定</b><em>嵌入转移任务</em></div>
         <button onClick={()=>setTool("PATH-NEGLECT")}>进入忽略路径 <b>→</b></button>
       </section>
+      <section className="pathSection pathTone">
+        <div><span className="kicker">CLINICAL PATHWAY 04</span><h2>痉挛与关节活动受限路径</h2><p>区分速度依赖性阻力、固定挛缩、疼痛和功能影响，再确定目标与转介时机。</p></div>
+        <div className="pathPreview"><span>不只看MAS</span><b>先明确功能问题</b><em>制定多专业计划</em></div>
+        <button onClick={()=>setTool("PATH-TONE")}>进入痉挛路径 <b>→</b></button>
+      </section>
       <section className="content" id="tools">
         <div className="sectionhead">
           <div>
@@ -385,8 +392,9 @@ export default function Home() {
             ["步态", "站立期膝过伸", "脑梗死后4周"],
             ["上肢", "偏瘫肩痛与半脱位", "脑出血后2周"],
             ["认知", "忽略导致的转移困难", "右侧大脑半球梗死后3周"],
+            ["肌张力", "踝跖屈影响足部着地", "脑梗死后3个月"],
           ].map((c, i) => (
-            <article className="case ready" key={c[1]} onClick={()=>i===0?setTool("CASE-WALK"):i===1?setTool("CASE-SHOULDER"):setTool("CASE-NEGLECT")} role="button" tabIndex={0}>
+            <article className="case ready" key={c[1]} onClick={()=>setTool(["CASE-WALK","CASE-SHOULDER","CASE-NEGLECT","CASE-TONE"][i])} role="button" tabIndex={0}>
               <span className="num">0{i + 1}</span>
               <div>
                 <em>{c[0]}</em>
@@ -423,7 +431,25 @@ export default function Home() {
             <button className="close" onClick={() => setTool(null)}>
               ×
             </button>
-            {tool === "PATH-NEGLECT" ? (
+            {tool === "PATH-TONE" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">CLINICAL PATHWAY 04</span><h2>痉挛与关节活动受限路径</h2><p>MAS只反映被动活动阻力等级；处理前需明确活动范围、疼痛、诱因和功能目标。</p></div>
+                <div className="pathInputs"><label>MAS等级<select value={toneGrade} onChange={(e)=>setToneGrade(e.target.value)}>{masGrades.map(x=><option value={x.grade} key={x.grade}>MAS {x.grade}</option>)}</select></label><label>慢速被动活动范围<select value={toneProm} onChange={(e)=>setToneProm(e.target.value)}><option>被动活动范围基本完整</option><option>部分受限但可缓慢达到更多范围</option><option>固定明显受限／疑似挛缩</option></select></label><label>疼痛 NRS 0–10<input type="number" min="0" max="10" value={tonePain} onChange={(e)=>setTonePain(Math.max(0,Math.min(10,Number(e.target.value)||0)))} /></label><label>主要功能目标<select value={toneGoal} onChange={(e)=>setToneGoal(e.target.value)}><option>改善步行足部着地</option><option>改善手卫生与穿衣</option><option>减少疼痛与夜间痉挛</option><option>便于摆位、照护或佩戴矫形器</option><option>改善主动任务表现</option></select></label></div>
+                <div className="pathPlan"><div className="pathPriority"><span>当前判断重点</span><h3>{toneProm.includes("固定")?"优先评估软组织挛缩与结构性限制":tonePain>=5?"先识别疼痛来源与痉挛诱因":Number(toneGrade.replace("+",".5"))>=3?"明显被动阻力，需要专科综合评估":"把肌张力变化放回具体功能任务解释"}</h3><p>{toneGoal}。记录速度、体位、关节范围和诱发因素，避免把MAS变化等同于功能改善。</p></div><div className="pathColumns"><article><span>先检查</span><ul><li>慢速与快速被动活动的差异</li><li>疼痛、皮肤、感染、便秘和不良摆位等诱因</li><li>主动控制、力量及痉挛是否在任务中有帮助或妨碍</li></ul></article><article><span>管理方向</span><ul><li>围绕明确目标进行主动任务练习和摆位教育</li><li>保持舒适活动范围，避免强力或疼痛性牵伸</li><li>复杂或局灶性问题转介痉挛专科团队评估药物、注射及配套康复</li><li>矫形、夹板或持续牵伸不作为无差别常规方案</li></ul></article><article><span>复评计划</span><ul><li>同体位、同速度复测MAS和活动范围</li><li>疼痛、皮肤、睡眠和照护难度</li><li>目标任务是否改善，而非只看肌张力</li><li>记录不良反应和患者偏好</li></ul></article></div></div>
+                <div className="interpret"><h3>使用边界</h3><p>肉毒毒素和口服抗痉挛药物需要具备资质的临床团队评估与处方；局灶性肌张力下降并不保证步行或主动手功能同步改善。</p></div>
+              </>
+            ) : tool === "CASE-TONE" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">CASE-BASED LEARNING 04</span><h2>病例：踝跖屈肌张力影响足部着地</h2><p>脑梗死后3个月，FAC 3级，踝跖屈肌MAS 2。慢速踝背屈接近中立位，快走时前足先着地，紧张时更明显。</p></div>
+                <div className="caseFacts"><span>无明显踝痛</span><span>被动范围接近完整</span><span>使用四脚杖</span><span>目标是减少绊倒</span></div>
+                <div className="quiz">{[
+                  {q:"1. 还需要优先补充什么信息？",opts:["只重复一次MAS","观察不同速度下步态、主动背屈、膝控制及诱发因素","直接判断为固定挛缩"],correct:1,why:"被动范围接近完整，需进一步区分痉挛、主动控制不足和整条下肢运动策略。"},
+                  {q:"2. 哪个目标最合理？",opts:["两周内MAS必须降到0","在规定步行任务中增加足跟或更安全的足部着地并减少绊碰","每天被动牵伸越久越好"],correct:1,why:"治疗目标应指向患者关心的安全功能，而不是孤立追求MAS等级。"},
+                  {q:"3. 若考虑局灶性药物或注射，正确做法是？",opts:["治疗师自行决定剂量","转介有经验的痉挛团队，设定目标并配套康复与复评","注射后无需再训练"],correct:1,why:"复杂痉挛管理需要专业团队，并以目标达成和功能变化持续复评。"},
+                ].map((q,qi)=><section className="quizitem" key={q.q}><h3>{q.q}</h3>{q.opts.map((o,oi)=><button className={toneAnswers[qi]===oi?(oi===q.correct?"correct":"wrong"):""} onClick={()=>setToneAnswers(a=>a.map((v,i)=>i===qi?oi:v))} key={o}>{o}</button>)}{toneAnswers[qi]>=0?<p className={toneAnswers[qi]===q.correct?"ok":"retry"}>{toneAnswers[qi]===q.correct?"判断合理。":"再想一步。"} {q.why}</p>:null}</section>)}</div>
+                <div className="caseResult"><strong>{toneAnswers.filter(a=>a===1).length}/3</strong><div><b>{toneAnswers.every(a=>a>=0)?"本轮已完成":"完成三个痉挛管理决策"}</b><p>从功能目标出发，区分神经性阻力与固定限制，再选择团队方案。</p></div><button className="outline" onClick={()=>setToneAnswers([-1,-1,-1])}>重新训练</button></div>
+              </>
+            ) : tool === "PATH-NEGLECT" ? (
               <>
                 <div className="tooltitle"><span className="kicker">CLINICAL PATHWAY 03</span><h2>偏侧忽略与安全转移路径</h2><p>先确认医学稳定性，并区分空间忽略、视野缺损、感觉障碍和理解问题。</p></div>
                 <div className="pathInputs"><label>主要忽略侧<select value={neglectSide} onChange={(e)=>setNeglectSide(e.target.value)}><option>左侧</option><option>右侧</option><option>双侧／不明确</option></select></label><label>功能任务中的表现<select value={neglectLevel} onChange={(e)=>setNeglectLevel(e.target.value)}><option>轻度</option><option>中度</option><option>重度</option></select></label><label>TIS总分<input type="number" min="0" max="23" value={neglectTis} onChange={(e)=>setNeglectTis(Math.max(0,Math.min(23,Number(e.target.value)||0)))} /></label><label>当前转移协助<select value={transferHelp} onChange={(e)=>setTransferHelp(e.target.value)}><option>监督／口头提示</option><option>一人少量帮助</option><option>一人较多帮助</option><option>两人帮助或机械辅助</option></select></label></div>
