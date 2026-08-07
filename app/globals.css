@@ -17,3 +17,4 @@
 .pathAlt{background:#f8f4ed}.pathAlt .pathPreview b{background:#fff0e6;color:#9a4d27}
 .pathNeglect{background:#eef0f7}.pathNeglect .pathPreview b{background:#e5e8f5;color:#4d5789}
 .pathTone{background:#f5eee9}.pathTone .pathPreview b{background:#f2ddd0;color:#87462d}.casegrid{grid-template-columns:repeat(4,1fr)}@media(max-width:900px){.casegrid{grid-template-columns:1fr 1fr}}@media(max-width:520px){.casegrid{grid-template-columns:1fr}}
+.pathAdl{background:#edf4f3}.pathAdl .pathPreview b{background:#dceceb;color:#315f5b}.casegrid{grid-template-columns:repeat(5,1fr)}@media(max-width:1100px){.casegrid{grid-template-columns:repeat(3,1fr)}}

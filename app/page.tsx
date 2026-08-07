@@ -180,6 +180,8 @@ export default function Home() {
   const [neglectAnswers,setNeglectAnswers]=useState<number[]>([-1,-1,-1]);
   const [toneGrade,setToneGrade]=useState("2"); const [toneProm,setToneProm]=useState("被动活动范围基本完整"); const [tonePain,setTonePain]=useState(2); const [toneGoal,setToneGoal]=useState("改善步行足部着地");
   const [toneAnswers,setToneAnswers]=useState<number[]>([-1,-1,-1]);
+  const [homeBi,setHomeBi]=useState(65); const [homeTransfer,setHomeTransfer]=useState("少量帮助／监督"); const [homeCognition,setHomeCognition]=useState("需要提示"); const [homeSupport,setHomeSupport]=useState("白天部分时间有人");
+  const [adlAnswers,setAdlAnswers]=useState<number[]>([-1,-1,-1]);
   useEffect(() => {
     try {
       setRecords(JSON.parse(localStorage.getItem("zuka-10mwt") || "[]"));
@@ -329,6 +331,11 @@ export default function Home() {
         <div className="pathPreview"><span>不只看MAS</span><b>先明确功能问题</b><em>制定多专业计划</em></div>
         <button onClick={()=>setTool("PATH-TONE")}>进入痉挛路径 <b>→</b></button>
       </section>
+      <section className="pathSection pathAdl">
+        <div><span className="kicker">CLINICAL PATHWAY 05</span><h2>日常生活活动与居家准备</h2><p>从Barthel总分回到如厕、转移、洗澡等具体活动，并检查照护、环境和随访是否到位。</p></div>
+        <div className="pathPreview"><span>拆解具体活动</span><b>模拟家庭环境</b><em>形成交接清单</em></div>
+        <button onClick={()=>setTool("PATH-ADL")}>进入居家路径 <b>→</b></button>
+      </section>
       <section className="content" id="tools">
         <div className="sectionhead">
           <div>
@@ -393,8 +400,9 @@ export default function Home() {
             ["上肢", "偏瘫肩痛与半脱位", "脑出血后2周"],
             ["认知", "忽略导致的转移困难", "右侧大脑半球梗死后3周"],
             ["肌张力", "踝跖屈影响足部着地", "脑梗死后3个月"],
+            ["日常生活", "夜间如厕与居家安全", "脑梗死后5周"],
           ].map((c, i) => (
-            <article className="case ready" key={c[1]} onClick={()=>setTool(["CASE-WALK","CASE-SHOULDER","CASE-NEGLECT","CASE-TONE"][i])} role="button" tabIndex={0}>
+            <article className="case ready" key={c[1]} onClick={()=>setTool(["CASE-WALK","CASE-SHOULDER","CASE-NEGLECT","CASE-TONE","CASE-ADL"][i])} role="button" tabIndex={0}>
               <span className="num">0{i + 1}</span>
               <div>
                 <em>{c[0]}</em>
@@ -431,7 +439,25 @@ export default function Home() {
             <button className="close" onClick={() => setTool(null)}>
               ×
             </button>
-            {tool === "PATH-TONE" ? (
+            {tool === "PATH-ADL" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">CLINICAL PATHWAY 05</span><h2>日常生活活动与居家准备路径</h2><p>Barthel指数用于描述基本ADL表现，不能单独证明患者可以安全独居或完成工具性活动。</p></div>
+                <div className="pathInputs"><label>Barthel指数<input type="number" min="0" max="100" step="5" value={homeBi} onChange={(e)=>setHomeBi(Math.max(0,Math.min(100,Number(e.target.value)||0)))} /></label><label>床椅／如厕转移<select value={homeTransfer} onChange={(e)=>setHomeTransfer(e.target.value)}><option>独立且安全</option><option>少量帮助／监督</option><option>较多帮助</option><option>不能完成</option></select></label><label>认知与安全判断<select value={homeCognition} onChange={(e)=>setHomeCognition(e.target.value)}><option>能独立执行</option><option>需要提示</option><option>持续监督</option><option>无法可靠配合</option></select></label><label>家庭支持<select value={homeSupport} onChange={(e)=>setHomeSupport(e.target.value)}><option>全天有胜任照护者</option><option>白天部分时间有人</option><option>仅偶尔探访</option><option>独居且暂无支持</option></select></label></div>
+                <div className="pathPlan"><div className="pathPriority"><span>当前优先方向</span><h3>{homeTransfer.includes("不能")||homeTransfer.includes("较多")?"先解决高频转移和照护可行性":homeCognition.includes("持续")||homeCognition.includes("无法")?"认知安全、监督需求与照护者训练":homeSupport.includes("独居")||homeSupport.includes("偶尔")?"补齐家庭支持、环境改造和应急方案":"在真实家庭任务中验证独立性"}</h3><p>BI {homeBi}/100；转移“{homeTransfer}”，认知“{homeCognition}”，家庭支持“{homeSupport}”。总分必须结合具体条目与家庭情境解释。</p></div><div className="pathColumns"><article><span>优先训练</span><ul><li>如厕、穿衣、洗澡和床椅转移的完整任务链</li><li>在接近家庭高度、空间和器具条件下练习</li><li>训练患者发起求助、携带呼叫设备和能量管理</li></ul></article><article><span>居家准备</span><ul><li>核对入口、床、厕所、浴室、照明和地面风险</li><li>试用并确认辅助器具尺寸与使用能力</li><li>照护者完成实际操作训练并说明自身承受能力</li></ul></article><article><span>交接与复评</span><ul><li>记录每项活动的协助量、提示和器具</li><li>提供药物、随访、应急联系人及康复计划</li><li>回家后尽早复核真实环境中的安全与目标</li></ul></article></div></div>
+                <div className="interpret"><h3>出院边界</h3><p>本路径不作“可以出院”或“可以独居”的自动判定。最终计划需要患者、家属及多专业团队共同确认，并与当地医疗和社会支持条件相匹配。</p></div>
+              </>
+            ) : tool === "CASE-ADL" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">CASE-BASED LEARNING 05</span><h2>病例：夜间如厕与居家安全</h2><p>脑梗死后5周，BI 70/100。白天使用四脚杖可在监督下如厕；夜间起身急，曾近跌倒。与高龄配偶同住，卫生间门口有门槛。</p></div>
+                <div className="caseFacts"><span>转移需口头提示</span><span>夜尿2–3次</span><span>配偶不能提供抬抱</span><span>卧室到厕所8米</span></div>
+                <div className="quiz">{[
+                  {q:"1. BI 70分能否说明可以安全回家？",opts:["可以，总分已超过60","不能；还需分析夜间如厕、认知、环境和可用照护","只需再测一次BI"],correct:1,why:"BI总分不能覆盖时段差异、环境障碍和照护者能力。"},
+                  {q:"2. 出院前最有价值的训练是什么？",opts:["只在宽敞治疗室练直线步行","模拟夜间起床—照明—转移—门槛—如厕完整任务，并训练安全求助","让配偶学习抬抱患者"],correct:1,why:"训练应贴近真实高风险任务，同时避免把不可承受的抬抱责任交给高龄照护者。"},
+                  {q:"3. 哪项计划更完整？",opts:["回家后自行适应","环境处理、合适器具、照护者训练、夜间方案和早期随访复核","只发一张家庭训练单"],correct:1,why:"安全转衔需要环境、人员、器具、应急和后续服务共同落实。"},
+                ].map((q,qi)=><section className="quizitem" key={q.q}><h3>{q.q}</h3>{q.opts.map((o,oi)=><button className={adlAnswers[qi]===oi?(oi===q.correct?"correct":"wrong"):""} onClick={()=>setAdlAnswers(a=>a.map((v,i)=>i===qi?oi:v))} key={o}>{o}</button>)}{adlAnswers[qi]>=0?<p className={adlAnswers[qi]===q.correct?"ok":"retry"}>{adlAnswers[qi]===q.correct?"判断合理。":"再想一步。"} {q.why}</p>:null}</section>)}</div>
+                <div className="caseResult"><strong>{adlAnswers.filter(a=>a===1).length}/3</strong><div><b>{adlAnswers.every(a=>a>=0)?"本轮已完成":"完成三个居家决策"}</b><p>从总分回到真实任务、真实照护能力和真实家庭环境。</p></div><button className="outline" onClick={()=>setAdlAnswers([-1,-1,-1])}>重新训练</button></div>
+              </>
+            ) : tool === "PATH-TONE" ? (
               <>
                 <div className="tooltitle"><span className="kicker">CLINICAL PATHWAY 04</span><h2>痉挛与关节活动受限路径</h2><p>MAS只反映被动活动阻力等级；处理前需明确活动范围、疼痛、诱因和功能目标。</p></div>
                 <div className="pathInputs"><label>MAS等级<select value={toneGrade} onChange={(e)=>setToneGrade(e.target.value)}>{masGrades.map(x=><option value={x.grade} key={x.grade}>MAS {x.grade}</option>)}</select></label><label>慢速被动活动范围<select value={toneProm} onChange={(e)=>setToneProm(e.target.value)}><option>被动活动范围基本完整</option><option>部分受限但可缓慢达到更多范围</option><option>固定明显受限／疑似挛缩</option></select></label><label>疼痛 NRS 0–10<input type="number" min="0" max="10" value={tonePain} onChange={(e)=>setTonePain(Math.max(0,Math.min(10,Number(e.target.value)||0)))} /></label><label>主要功能目标<select value={toneGoal} onChange={(e)=>setToneGoal(e.target.value)}><option>改善步行足部着地</option><option>改善手卫生与穿衣</option><option>减少疼痛与夜间痉挛</option><option>便于摆位、照护或佩戴矫形器</option><option>改善主动任务表现</option></select></label></div>
