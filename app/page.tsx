@@ -182,6 +182,13 @@ export default function Home() {
   const [toneAnswers,setToneAnswers]=useState<number[]>([-1,-1,-1]);
   const [homeBi,setHomeBi]=useState(65); const [homeTransfer,setHomeTransfer]=useState("少量帮助／监督"); const [homeCognition,setHomeCognition]=useState("需要提示"); const [homeSupport,setHomeSupport]=useState("白天部分时间有人");
   const [adlAnswers,setAdlAnswers]=useState<number[]>([-1,-1,-1]);
+  const [gaitCase,setGaitCase]=useState({code:"STK-GAIT-001",side:"左侧",onset:"6周",device:"四脚杖",goal:"独立步行到小区花园"});
+  const [gaitObs,setGaitObs]=useState<string[]>(["患侧负重时间缩短","摆动期足尖拖地","转弯需要提示"]);
+  const [gaitProblem,setGaitProblem]=useState("动态平衡不足；患侧足部清除困难；由监督步行向独立步行过渡");
+  const [gaitSmart,setGaitSmart]=useState("2周内使用四脚杖完成室内30米步行，仅需远距离监护，无身体接触和近跌倒");
+  const [gaitPlan,setGaitPlan]=useState("坐站与患侧负重 10次×3组；20米任务步行×4组；转弯与障碍物训练10分钟；每周5天；2周后复测FAC、10MWT和BBS");
+  const [viconSummary,setViconSummary]=useState<{name:string;rows:number;columns:number;left:boolean;right:boolean;events:boolean;headers:string[]} | null>(null);
+  const [gaitSaved,setGaitSaved]=useState(false);
   useEffect(() => {
     try {
       setRecords(JSON.parse(localStorage.getItem("zuka-10mwt") || "[]"));
@@ -256,13 +263,16 @@ export default function Home() {
   function saveFac(){const next=[{date:new Date().toLocaleString("zh-CN"),level:facLevel,device:facDevice,note:facNote.trim()},...facRecords].slice(0,8);setFacRecords(next);localStorage.setItem("zuka-fac",JSON.stringify(next));}
   const totalRecords=records.length+bbsRecords.length+masRecords.length+biRecords.length+tisRecords.length+fmaRecords.length+sensRecords.length+brRecords.length+facRecords.length;
   function exportRecords(){const payload={exportedAt:new Date().toISOString(),app:"卒康",version:1,records:{walk10m:records,fac:facRecords,bbs:bbsRecords,mas:masRecords,barthel:biRecords,tis:tisRecords,fma:fmaRecords,sensory:sensRecords,brunnstrom:brRecords}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`卒康评估记录-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);}
+  async function importVicon(file:File){const text=await file.text(),lines=text.split(/\r?\n/).filter(Boolean),headers=(lines[0]||"").split(/[,;\t]/).map(x=>x.trim()).filter(Boolean),joined=text.toLowerCase();setViconSummary({name:file.name,rows:Math.max(0,lines.length-1),columns:headers.length,left:/left|\bl\b|左/.test(joined),right:/right|\br\b|右/.test(joined),events:/foot strike|foot off|event|触地|离地/.test(joined),headers:headers.slice(0,8)})}
+  function saveGaitWorkspace(){const item={savedAt:new Date().toISOString(),case:gaitCase,clinical:{fac:pathFac,bbs:pathBbs,speed:pathSpeed},vicon:viconSummary,observations:gaitObs,problems:gaitProblem,smartGoal:gaitSmart,plan:gaitPlan,review:"辅助分析草稿，须由具备资质的临床人员审核"};localStorage.setItem("zuxing-workspace",JSON.stringify(item));setGaitSaved(true)}
+  function exportGaitWorkspace(){const item=localStorage.getItem("zuxing-workspace")||JSON.stringify({case:gaitCase,observations:gaitObs,problems:gaitProblem,smartGoal:gaitSmart,plan:gaitPlan},null,2),blob=new Blob([item],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`卒行-${gaitCase.code}.json`;a.click();URL.revokeObjectURL(url)}
   return (
     <main>
       <header className="topbar">
         <a className="brand" href="#top">
           <span>卒</span>
-          <b>卒康</b>
-          <em>STROKE REHAB LAB</em>
+          <b>卒行</b>
+          <em>STROKE GAIT LAB</em>
         </a>
         <nav>
           <a className="active" href="#tools">
@@ -278,14 +288,15 @@ export default function Home() {
       <section className="hero" id="top">
         <div className="eyebrow">
           <span />
-          脑卒中康复临床工具箱
+          脑卒中步行功能评估训练系统
         </div>
         <h1>
-          从评估，到更有依据的
+          从步行数据，到可执行的
           <br />
-          <strong>临床决策。</strong>
+          <strong>训练计划。</strong>
         </h1>
-        <p>为康复治疗师整理可信、清晰、可以立即使用的评估工具与临床路径。</p>
+        <p>连接脱敏病例、临床评估、Vicon步态数据、问题分析、SMART目标、治疗计划与复评。</p>
+        <button className="gaitStart" onClick={()=>setTool("GAIT-HUB")}>开始步行功能工作流 →</button>
         <div className="searchbox">
           <span>⌕</span>
           <input
@@ -439,7 +450,19 @@ export default function Home() {
             <button className="close" onClick={() => setTool(null)}>
               ×
             </button>
-            {tool === "PATH-ADL" ? (
+            {tool === "GAIT-HUB" ? (
+              <>
+                <div className="tooltitle"><span className="kicker">STROKE GAIT WORKSPACE</span><h2>卒中步行功能工作站</h2><p>一条记录贯通建档、临床评估、Vicon数据、步态观察、问题、目标、计划与复评。</p></div>
+                <div className="gaitSteps">{["1 建档","2 评估","3 Vicon","4 观察","5 问题","6 目标","7 计划","8 复评"].map(x=><span key={x}>{x}</span>)}</div>
+                <section className="gaitPanel"><h3>1 · 脱敏病例建档</h3><div className="pathInputs"><label>病例编码<input value={gaitCase.code} onChange={e=>setGaitCase({...gaitCase,code:e.target.value})} /></label><label>患侧<select value={gaitCase.side} onChange={e=>setGaitCase({...gaitCase,side:e.target.value})}><option>左侧</option><option>右侧</option><option>双侧／不明确</option></select></label><label>病程<input value={gaitCase.onset} onChange={e=>setGaitCase({...gaitCase,onset:e.target.value})} /></label><label>辅助器具<input value={gaitCase.device} onChange={e=>setGaitCase({...gaitCase,device:e.target.value})} /></label></div><label className="binote">患者步行目标<textarea value={gaitCase.goal} onChange={e=>setGaitCase({...gaitCase,goal:e.target.value})} /></label><small>仅使用研究编码；不要填写姓名、住院号、电话或身份证号。</small></section>
+                <section className="gaitPanel"><h3>2 · 临床步行评估</h3><div className="gaitMetrics"><label>FAC<input type="number" min="0" max="5" value={pathFac} onChange={e=>setPathFac(Number(e.target.value))} /></label><label>BBS<input type="number" min="0" max="56" value={pathBbs} onChange={e=>setPathBbs(Number(e.target.value))} /></label><label>10MWT<input type="number" min="0" step=".01" value={pathSpeed} onChange={e=>setPathSpeed(Number(e.target.value))} /><small>m/s</small></label><label>Brunnstrom-LE<input type="number" min="1" max="6" value={brLower} onChange={e=>setBrLower(Number(e.target.value))} /></label></div></section>
+                <section className="gaitPanel"><h3>3 · 导入Vicon Nexus CSV</h3><label className="viconDrop"><input type="file" accept=".csv,.txt,.tsv" onChange={e=>e.target.files?.[0]&&importVicon(e.target.files[0])} /><b>选择脱敏CSV文件</b><span>支持Nexus导出的时空参数、运动学或动力学表格</span></label>{viconSummary?<div className="viconQuality"><b>{viconSummary.name}</b><span>{viconSummary.rows}行 · {viconSummary.columns}列</span><p>{viconSummary.left&&viconSummary.right?"✓ 检出左右侧字段":"⚠ 未可靠检出左右侧字段"} · {viconSummary.events?"✓ 检出步态事件":"⚠ 未检出Foot Strike/Foot Off，不能声称完成步态周期归一化"}</p><small>字段预览：{viconSummary.headers.join(" · ")||"无"}</small></div>:null}<div className="privacy"><b>数据质量边界</b><p>仅在足与测力台分配明确时解释单侧动力学；缺少体重或单位时不做归一化；静态、标定或过短试验需单独标记。</p></div></section>
+                <section className="gaitPanel"><h3>4 · 结构化步态观察</h3><div className="obsGrid">{["患侧负重时间缩短","初始接触异常","站立期膝过伸","站立期膝不稳","髋伸展不足","摆动期足尖拖地","画圈／提髋代偿","步长不对称","转弯需要提示","疲劳后恶化"].map(x=><label key={x}><input type="checkbox" checked={gaitObs.includes(x)} onChange={e=>setGaitObs(e.target.checked?[...gaitObs,x]:gaitObs.filter(v=>v!==x))} />{x}</label>)}</div></section>
+                <section className="gaitPanel"><h3>5–7 · 临床推理与计划</h3><label className="binote">优先问题清单<textarea value={gaitProblem} onChange={e=>setGaitProblem(e.target.value)} /></label><label className="binote">SMART目标<textarea value={gaitSmart} onChange={e=>setGaitSmart(e.target.value)} /></label><label className="binote">治疗计划与剂量<textarea value={gaitPlan} onChange={e=>setGaitPlan(e.target.value)} /></label><p className="causalNote">步态数据只能“提示可能相关因素”，不能从运动学表现直接生成新的医学诊断。</p></section>
+                <section className="gaitReview"><div><span>8 · 复评基线</span><b>FAC {pathFac} · BBS {pathBbs}/56 · {pathSpeed.toFixed(2)} m/s</b><small>{gaitCase.code} · {gaitCase.side} · {gaitCase.onset}</small></div><button className="primary" onClick={saveGaitWorkspace}>{gaitSaved?"已保存本机草稿":"保存工作流草稿"}</button><button className="outline" onClick={exportGaitWorkspace}>导出JSON</button></section>
+                <div className="interpret"><h3>临床审核声明</h3><p>本工作站生成的是辅助分析草稿。测量结果与临床解释分开记录，所有问题清单、目标和计划须由具备资质的临床人员结合查体、影像和患者意愿审核。</p></div>
+              </>
+            ) : tool === "PATH-ADL" ? (
               <>
                 <div className="tooltitle"><span className="kicker">CLINICAL PATHWAY 05</span><h2>日常生活活动与居家准备路径</h2><p>Barthel指数用于描述基本ADL表现，不能单独证明患者可以安全独居或完成工具性活动。</p></div>
                 <div className="pathInputs"><label>Barthel指数<input type="number" min="0" max="100" step="5" value={homeBi} onChange={(e)=>setHomeBi(Math.max(0,Math.min(100,Number(e.target.value)||0)))} /></label><label>床椅／如厕转移<select value={homeTransfer} onChange={(e)=>setHomeTransfer(e.target.value)}><option>独立且安全</option><option>少量帮助／监督</option><option>较多帮助</option><option>不能完成</option></select></label><label>认知与安全判断<select value={homeCognition} onChange={(e)=>setHomeCognition(e.target.value)}><option>能独立执行</option><option>需要提示</option><option>持续监督</option><option>无法可靠配合</option></select></label><label>家庭支持<select value={homeSupport} onChange={(e)=>setHomeSupport(e.target.value)}><option>全天有胜任照护者</option><option>白天部分时间有人</option><option>仅偶尔探访</option><option>独居且暂无支持</option></select></label></div>
